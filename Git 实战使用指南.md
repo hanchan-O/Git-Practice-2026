@@ -1,8 +1,8 @@
 # 🎯 Git 实战使用指南（完整版）
 
 > 从零开始掌握 Git 和 GitHub，包含完整流程、命令详解、多种场景处理和实战任务清单  
-> **版本**: v5.0（分支管理与协作版）  
-> **最后更新**: 2026-03-11
+> **版本**: v6.0（命令深度解析版）  
+> **最后更新**: 2026-03-12
 
 ---
 
@@ -12,12 +12,13 @@
 2. [环境配置与初始化](#2-环境配置与初始化)
 3. [完整工作流程](#3-完整工作流程)
 4. [核心命令详解](#4-核心命令详解)
-5. [分支管理与高级操作](#5-分支管理与高级操作)
-6. [撤销与恢复操作](#6-撤销与恢复操作)
-7. [远程仓库协作](#7-远程仓库协作)
-8. [常见问题与解决方案](#8-常见问题与解决方案)
-9. [实战任务清单](#9-实战任务清单) ⭐
-10. [提交规范速查](#10-提交规范速查)
+5. [命令对比与深度解析](#4-6-命令对比与深度解析-) ⭐⭐⭐
+6. [分支管理与高级操作](#5-分支管理与高级操作)
+7. [撤销与恢复操作](#6-撤销与恢复操作)
+8. [远程仓库协作](#7-远程仓库协作)
+9. [常见问题与解决方案](#8-常见问题与解决方案)
+10. [实战任务清单](#9-实战任务清单) ⭐
+11. [提交规范速查](#10-提交规范速查)
 11. [实战问题解析](#11-实战问题解析) ⭐
 
 ---
@@ -622,6 +623,370 @@ release-x.x.x   - 发布分支（如：release-1.0.0）
 hotfix-xxx      - 紧急修复分支（如：hotfix-security）
 ```
 
+### 4.6 命令对比与深度解析 ⭐⭐⭐
+
+本节详细对比 Git 中容易混淆的命令，帮助你理解每个命令的适用场景。
+
+---
+
+#### 4.6.1 git restore vs git reset vs git checkout - 撤销修改三部曲
+
+**问题**：这三个命令都可以用来"撤销"修改，但作用完全不同！**
+
+##### 核心概念：三区域模型
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Git 三大区域                                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   工作区 (Working Directory)   ← 你眼睛看到的文件             │
+│           ↓ git add                                        │
+│   暂存区 (Staging Area)       ← 准备提交的"待确认"区域        │
+│           ↓ git commit                                  │
+│   仓库区 (Repository)         ← 已保存的历史记录              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**记住**：
+- **工作区** = 你正在编辑的文件
+- **暂存区** = 准备提交的文件（已 git add）
+- **仓库区** = 已提交的历史（已 git commit）
+
+---
+
+##### 命令对比表
+
+| 命令 | 作用区域 | 作用 | 场景 |
+|------|----------|------|------|
+| `git restore <文件>` | **工作区** | 用仓库的最新提交覆盖工作区 | 撤销工作区的修改 |
+| `git restore --staged <文件>` | **暂存区** | 把文件从暂存区移回工作区 | 撤销 git add |
+| `git reset HEAD <文件>` | **暂存区** | 同上，撤销 git add（旧语法） | 撤销 git add |
+| `git checkout -- <文件>` | **工作区** | 同 git restore（旧语法） | 撤销工作区修改 |
+
+---
+
+##### 详细解析
+
+**场景 1：工作区修改了文件，想撤销**
+
+```powershell
+# 你修改了文件，但还没有 git add
+# 文件状态：Changes not staged for commit
+
+# 查看状态
+git status
+# Changes not staged for commit:
+#   modified: README.md
+
+# 撤销工作区修改（恢复到上次提交的状态）
+git restore README.md
+
+# 或者用旧语法
+git checkout -- README.md
+
+# 结果：文件回到上次提交的状态
+git status
+# nothing to commit, working tree clean
+```
+
+**❌ 错误做法**：
+```powershell
+# 错误！git reset 是操作暂存区的，不能撤销工作区修改
+git reset HEAD README.md
+# 这个命令对工作区修改无效！
+```
+
+---
+
+**场景 2：文件已 git add，想撤销**
+
+```powershell
+# 你执行了 git add，文件进入暂存区
+# 文件状态：Changes to be committed
+
+git add README.md
+git status
+# Changes to be committed:
+#   new file:   README.md
+
+# 撤销暂存（把文件从暂存区移回工作区）
+git restore --staged README.md
+
+# 或者用旧语法
+git reset HEAD README.md
+
+# 结果：文件回到工作区，但修改还在
+git status
+# Changes not staged for commit:
+#   new file:   README.md
+```
+
+---
+
+**场景 3：既想撤销 git add，又想撤销工作区修改**
+
+```powershell
+# 完整撤销：回到上次提交的状态
+git restore --staged README.md  # 第一步：撤销暂存
+git restore README.md           # 第二步：撤销工作区修改
+
+# 或者一步到位（用 git checkout）
+git checkout HEAD -- README.md
+```
+
+---
+
+**场景 4：想撤销提交**
+
+```powershell
+# 撤销最后一次提交（保留修改在工作区）
+git reset --soft HEAD^
+
+# 撤销最后一次提交（保留修改在暂存区）
+git reset --mixed HEAD^  # 默认就是这个
+
+# 撤销最后一次提交（完全丢弃修改！）
+git reset --hard HEAD^  # ⚠️ 危险！不可恢复！
+```
+
+---
+
+#### 4.6.2 git checkout vs git switch - 切换分支
+
+**问题**：git checkout 既能切换分支，又能撤销修改，到底是用来干嘛的？
+
+##### 命令对比
+
+| 命令 | 用途 | 适用对象 |
+|------|------|----------|
+| `git checkout <分支>` | 切换到指定分支 | 分支操作 |
+| `git checkout -b <分支>` | 创建并切换到新分支 | 分支操作 |
+| `git checkout -- <文件>` | 撤销文件修改 | 文件操作 |
+| `git switch <分支>` | 切换到指定分支（仅限分支） | 分支操作（新版） |
+| `git switch -c <分支>` | 创建并切换到新分支 | 分支操作（新版） |
+
+##### 为什么有两个命令？
+
+- **git checkout**：老命令，功能多（分支+文件），但容易混淆
+- **git switch**：Git 2.23+ 新增的命令，专门用于分支操作，更清晰
+
+##### 推荐
+
+```powershell
+# ✅ 推荐：使用 git switch（更清晰）
+git switch main              # 切换到 main
+git switch -b feature-login  # 创建并切换到新分支
+
+# ⚠️ 谨慎：git checkout 两种用途
+git checkout main            # 切换分支
+git checkout -- README.md    # 撤销文件修改 ← 容易混淆
+```
+
+---
+
+#### 4.6.3 git merge vs git rebase - 合并分支
+
+**问题**：两个命令都能合并分支，有什么区别？
+
+##### 核心区别
+
+| 命令 | 特点 | 提交历史 | 适用场景 |
+|------|------|----------|----------|
+| **git merge** | 保留完整历史 | 产生合并提交 | 团队协作、公共分支 |
+| **git rebase** | 线性历史 | 不产生合并提交 | 个人分支整理 |
+
+##### 图解对比
+
+**git merge（产生分叉）**：
+```
+A---B---C---M---main
+     \         /
+      D---E---F---feature
+```
+- 保留完整历史
+- 有一个合并提交 M
+
+**git rebase（线性历史）**：
+```
+A---B---C---D---E---F---main
+                           (feature 先 D-E-F 再 rebase)
+```
+- 历史是一条线
+- 没有合并提交
+- ⚠️ 不要对公共分支使用！
+
+##### 什么时候用哪个？
+
+```powershell
+# ✅ 使用 merge：合并功能分支到主分支
+git checkout main
+git merge feature-login
+# 产生清晰的合并记录
+
+# ✅ 使用 rebase：整理个人开发分支
+# 假设你在 feature 分支开发，main 有新提交
+git checkout feature-login
+git rebase main
+# 把 feature 的基础从 C 移到最新的 main
+
+# ❌ 永远不要对公共分支（main）使用 rebase！
+# 这会修改公共历史，影响其他人
+```
+
+---
+
+#### 4.6.4 git pull vs git fetch - 拉取代码
+
+**问题**：git pull 和 git fetch 都能获取远程更新，有什么区别？
+
+##### 对比
+
+| 命令 | 作用 | 特点 |
+|------|------|------|
+| `git fetch` | 下载远程更新 | **不合并**到本地 |
+| `git pull` | 下载并合并 | **自动合并**到本地 |
+
+##### 图解
+
+```
+git fetch:
+  远程: origin/main (新提交)
+         ↓ 下载
+  本地: origin/main (本地副本更新)
+         ↓ 需要手动
+  本地: main (不变)
+
+git pull:
+  远程: origin/main (新提交)
+         ↓ 下载 + 合并
+  本地: main (自动更新)
+```
+
+##### 什么时候用哪个？
+
+```powershell
+# ✅ 使用 git pull：快速同步（最常用）
+git pull
+
+# ✅ 使用 git fetch + merge：更安全的做法
+git fetch origin              # 只下载
+git merge origin/main         # 再合并
+git diff main origin/main    # 先查看差异
+
+# ✅ 使用 git fetch + rebase：保持线性历史
+git fetch origin
+git rebase origin/main
+```
+
+---
+
+#### 4.6.5 git stash 的使用场景
+
+**问题**：什么时候需要暂存工作？
+
+##### 使用场景
+
+```powershell
+# 场景 1：临时切换分支，但不想提交当前工作
+# 你在 feature 分支开发到一半，需要紧急切换到 main 修 bug
+git stash                    # 暂存当前工作
+git checkout main
+# ... 修 bug ...
+git checkout feature
+git stash pop                # 恢复工作
+
+# 场景 2：拉取远程更新，但本地有冲突
+git stash                    # 先暂存
+git pull                     # 拉取远程
+git stash pop                # 恢复并解决冲突
+
+# 场景 3：想查看某个分支的干净状态
+git stash
+git checkout other-branch
+# ... 查看 ...
+git checkout original-branch
+git stash pop
+```
+
+##### stash 命令详解
+
+```powershell
+git stash                    # 暂存当前工作（未跟踪的文件不会暂存）
+git stash -u                 # 暂存包括未跟踪的文件
+git stash push -m "描述"    # 暂存并添加描述
+git stash list              # 查看所有暂存
+git stash pop                # 恢复最近的暂存（并删除）
+git stash apply              # 恢复最近的暂存（不删除）
+git stash drop               # 删除最近的暂存
+git stash clear              # 清空所有暂存
+```
+
+---
+
+#### 4.6.6 git rm 的三种模式
+
+**问题**：git rm、git rm --cached、git rm -f 有什么区别？
+
+##### 对比
+
+| 命令 | 删除位置 | 文件状态 | 场景 |
+|------|----------|----------|------|
+| `git rm <文件>` | 工作区 + 仓库 | 文件被删除 | 彻底删除文件 |
+| `git rm --cached <文件>` | 仅仓库 | 文件保留在本地 | 不想跟踪但保留本地 |
+| `git rm -f <文件>` | 工作区 + 仓库 | 强制删除 | 删除已修改的文件 |
+
+##### 详细示例
+
+```powershell
+# 场景 1：彻底删除文件（本地和 Git 都删除）
+git rm big-file.zip
+# 工作区：文件删除
+# 暂存区：删除操作已暂存
+# 提交后：Git 也不再跟踪
+
+# 场景 2：仅从 Git 移除（保留本地文件）
+git rm --cached big-file.zip
+# 工作区：文件保留
+# 暂存区：移除跟踪操作已暂存
+# 提交后：Git 不再跟踪，但本地文件还在
+# 常用于：.gitignore 生效前已跟踪的文件
+
+# 场景 3：强制删除（删除修改过的文件）
+git rm -f important.txt
+# 即使文件有修改，也强制删除
+```
+
+---
+
+#### 4.6.7 git branch 的多种用法
+
+##### 常用命令一览
+
+```powershell
+# 查看分支
+git branch                    # 本地分支
+git branch -r                 # 远程分支
+git branch -a                # 所有分支
+git branch -v                # 查看分支最后提交
+git branch -vv               # 查看分支 upstream 关联
+
+# 创建分支
+git branch feature-login      # 创建但不切换
+git checkout -b feature-login  # 创建并切换
+git switch -c feature-login     # 新版：创建并切换
+
+# 删除分支
+git branch -d feature-login    # 删除（已合并）
+git branch -D feature-login   # 强制删除（未合并）
+
+# 重命名分支
+git branch -m old-name new-name
+```
+
+---
+
 ### 5.2 分支开发流程
 
 ```powershell
@@ -996,6 +1361,7 @@ ls "目录/文件.md"
 | **Task 7** | 远程协作 | fetch、pull、PR | 25 分钟 | ⭐⭐⭐ |
 | **Task 8** | 综合实战 | 完整流程 | 30 分钟 | ⭐⭐⭐⭐ |
 | **Task 9** | 分支管理进阶 | upstream、推送、同步 | 25 分钟 | ⭐⭐⭐⭐ |
+| **Task 10** | 命令对比训练 | restore/reset/checkout/switch | 30 分钟 | ⭐⭐⭐⭐⭐ |
 
 ---
 
@@ -1830,6 +2196,318 @@ git branch -d feature-collaboration
 # 2. 确认 PR 已合并
 # 3. 确认文件已更新
 ```
+
+---
+
+### Task 10: 命令对比训练 ⭐⭐⭐⭐⭐
+
+**目标**: 掌握 Git 易混淆命令的区别，能够根据场景选择正确的命令。
+
+**核心技能**: git restore / git reset / git checkout / git switch / git merge / git rebase
+
+**场景说明**: 本任务通过 6 个具体场景，全面训练你对 Git 命令的理解。
+
+---
+
+#### 场景 1：撤销工作区修改
+
+**任务**: 修改一个文件后，想撤销修改
+
+**操作步骤**:
+```powershell
+# 1. 创建测试文件
+echo "原始内容" > test-undo.md
+git add test-undo.md
+git commit -m "新增：测试文件"
+
+# 2. 修改文件
+echo "新内容" >> test-undo.md
+
+# 3. 查看状态
+git status
+# 输出：Changes not staged for commit:
+#   modified: test-undo.md
+
+# 4. 撤销工作区修改（选择正确的命令）
+git restore test-undo.md
+
+# 5. 验证
+git status
+# 输出：nothing to commit, working tree clean
+cat test-undo.md
+# 输出：原始内容
+```
+
+**关键点**:
+- `git restore <文件>` 用于撤销**工作区**的修改
+- `git checkout -- <文件>` 是旧语法，作用相同
+
+**❌ 错误做法**:
+```powershell
+# 错误！git reset 是操作暂存区的
+git reset HEAD test-undo.md
+# 这个命令对工作区修改无效！
+```
+
+---
+
+#### 场景 2：撤销 git add（取消暂存）
+
+**任务**: 执行了 git add 后，想取消暂存
+
+**操作步骤**:
+```powershell
+# 1. 创建测试文件
+echo "测试内容" > test-staged.md
+git add test-staged.md
+
+# 2. 查看状态
+git status
+# 输出：Changes to be committed:
+#   new file:   test-staged.md
+
+# 3. 撤销暂存（选择正确的命令）
+git restore --staged test-staged.md
+
+# 或者使用旧语法
+git reset HEAD test-staged.md
+
+# 4. 验证
+git status
+# 输出：Changes not staged for commit:
+#   new file:   test-staged.md
+# 注意：文件内容还在，只是从暂存区移除了
+```
+
+**关键点**:
+- `git restore --staged <文件>` 撤销**暂存区**的操作
+- 文件的修改还在，只是移除了暂存状态
+
+---
+
+#### 场景 3：撤销提交
+
+**任务**: 提交后发现有问题，想撤销提交
+
+**操作步骤**:
+```powershell
+# 1. 创建文件并提交
+echo "内容A" > test-commit.md
+git add test-commit.md
+git commit -m "新增：测试提交"
+
+# 2. 查看提交历史
+git log --oneline
+# 输出：abc1234 新增：测试提交
+
+# 3. 撤销提交（保留修改）
+git reset --soft HEAD^
+
+# 4. 验证
+git status
+# 输出：Changes to be committed:
+#   new file:   test-commit.md
+# 注意：修改还在暂存区！
+
+# 5. 如果想完全丢弃修改
+git reset --hard HEAD^
+# ⚠️ 危险！修改会丢失！
+```
+
+**命令对比**:
+| 命令 | 修改位置 | 效果 |
+|------|----------|------|
+| `git reset --soft HEAD^` | 暂存区 | 修改在暂存区 |
+| `git reset --mixed HEAD^` | 暂存区+工作区 | 修改在工作区（默认） |
+| `git reset --hard HEAD^` | 全部 | 完全丢弃（危险！） |
+
+---
+
+#### 场景 4：切换分支
+
+**任务**: 在分支之间切换，体验不同命令
+
+**操作步骤**:
+```powershell
+# 1. 确保在 main 分支
+git checkout main
+
+# 2. 创建新分支并切换（方法对比）
+# 方法 A：git checkout -b（老语法）
+git checkout -b branch-A
+
+# 切换回 main 并删除
+git checkout main
+git branch -d branch-A
+
+# 方法 B：git switch -c（新版推荐）
+git switch -c branch-B
+
+# 切换回 main 并删除
+git switch main
+git branch -d branch-B
+
+# 3. 对比输出
+git switch -c branch-test
+# 输出：Switched to a new branch 'branch-test'
+
+git checkout -b branch-test2
+# 输出：Switched to a new branch 'branch-test2'
+```
+
+**推荐**:
+- 使用 `git switch` 更清晰（不会和文件操作混淆）
+- `git checkout` 功能太多，容易混淆
+
+---
+
+#### 场景 5：merge vs rebase
+
+**任务**: 体验两种合并方式的区别
+
+**操作步骤**:
+```powershell
+# ========== 准备：创建场景 ==========
+# 1. 在 main 创建初始提交
+git checkout main
+echo "初始内容" > merge-test.md
+git add merge-test.md
+git commit -m "初始提交"
+
+# 2. 创建功能分支
+git checkout -b feature-merge
+echo "功能A" >> merge-test.md
+git add merge-test.md
+git commit -m "新增：功能A"
+
+# ========== 场景 5a: 使用 merge ==========
+# 3. 切回 main，制造一个"干扰"提交
+git checkout main
+echo "干扰提交" >> merge-test.md
+git add merge-test.md
+git commit -m "更新：main更新"
+
+# 4. 使用 merge 合并
+git merge feature-merge
+
+# 5. 查看历史
+git log --oneline --graph
+# 会看到分叉历史
+
+# ========== 场景 5b: 使用 rebase（重新开始）==========
+# 1. 切回 main，删除之前的分支
+git checkout main
+git branch -D feature-merge
+git reset --hard HEAD~2  # 撤销前面的测试
+
+# 2. 重新创建功能分支
+git checkout -b feature-rebase
+echo "功能B" >> merge-test.md
+git add merge-test.md
+git commit -m "新增：功能B"
+
+# 3. 切回 main，制造"干扰"提交
+git checkout main
+echo "干扰提交2" >> merge-test.md
+git add merge-test.md
+git commit -m "更新：main更新2"
+
+# 4. 使用 rebase 合并
+git checkout feature-rebase
+git rebase main
+
+# 5. 查看历史
+git log --oneline --graph
+# 会看到线性历史！
+
+# ========== 清理 ==========
+git checkout main
+git branch -D feature-rebase
+git reset --hard HEAD~1
+```
+
+**关键区别**:
+| 特性 | merge | rebase |
+|------|-------|--------|
+| 历史 | 分叉（有合并提交） | 线性（无合并提交） |
+| 安全性 | 安全 | ⚠️ 不要对公共分支用 |
+| 适用 | 公共分支、团队协作 | 个人分支整理 |
+
+---
+
+#### 场景 6：git rm 的三种模式
+
+**任务**: 掌握不同的文件删除方式
+
+**操作步骤**:
+```powershell
+# ========== 场景 6a: git rm（彻底删除）==========
+# 1. 创建并提交文件
+echo "重要内容" > important.txt
+git add important.txt
+git commit -m "新增：重要文件"
+
+# 2. 使用 git rm 删除
+git rm important.txt
+# 效果：工作区删除 + 暂存区删除操作
+
+git status
+# 输出：Changes to be committed:
+#   deleted:    important.txt
+
+git commit -m "删除：重要文件"
+
+# ========== 场景 6b: git rm --cached（仅停止跟踪）==========
+# 1. 创建一个被跟踪的大文件
+echo "大文件内容" > large.bin
+git add large.bin
+git commit -m "新增：大文件"
+
+# 2. 使用 git rm --cached（停止跟踪但不删除本地）
+git rm --cached large.bin
+# 效果：仅从 Git 移除，本地文件保留
+
+git status
+# 输出：Changes to be committed:
+#   deleted:    large.bin
+
+# 查看 .gitignore
+echo "large.bin" >> .gitignore
+git add .gitignore
+git commit -m "更新：.gitignore，移除大文件跟踪"
+
+# ========== 场景 6c: git rm -f（强制删除）==========
+# 1. 创建并修改文件
+echo "修改过的内容" > force-delete.txt
+git add force-delete.txt
+git commit -m "新增：强制删除测试"
+
+# 2. 修改文件
+echo "新内容" >> force-delete.txt
+
+# 3. 尝试普通删除（会失败）
+git rm force-delete.txt
+# 输出：error: the following file has local modifications:
+# force-delete.txt
+
+# 4. 使用 -f 强制删除
+git rm -f force-delete.txt
+
+# ========== 清理 ==========
+git checkout main
+git branch -D test-rm
+```
+
+---
+
+#### 验收标准
+
+- [ ] 能够正确使用 git restore 撤销工作区修改
+- [ ] 能够正确使用 git restore --staged 撤销 git add
+- [ ] 能够正确使用 git reset --soft / --hard 撤销提交
+- [ ] 能够区分 git checkout 和 git switch 的用途
+- [ ] 能够区分 git merge 和 git rebase 的适用场景
+- [ ] 能够正确使用 git rm 的三种模式
 
 ---
 

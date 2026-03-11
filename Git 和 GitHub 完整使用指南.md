@@ -2,8 +2,8 @@
 
 > 从零开始，手把手教你使用 Git 和 GitHub，包含所有常见问题解决方案
 
-**版本**: v2.0（实战经验整合版）  
-**最后更新**: 2026-03-11
+**版本**: v3.0（命令深度解析版）  
+**最后更新**: 2026-03-12
 
 ---
 
@@ -12,9 +12,10 @@
 1. [Git 基础概念](#git-基础概念)
 2. [完整工作流程](#完整工作流程)
 3. [核心命令教学](#核心命令教学)
-4. [GitHub 使用方法](#github-使用方法)
-5. [常见问题解决](#常见问题解决)
-6.7. [最佳实践](#最佳实践)
+4. [命令对比与深度解析](#命令对比与深度解析) ⭐⭐⭐
+5. [GitHub 使用方法](#github-使用方法)
+6. [常见问题解决](#常见问题解决)
+7. [最佳实践](#最佳实践)
 8. [PowerShell 命令速查](#powershell-命令速查) ⭐
 9. [学习资源](#学习资源)
 
@@ -330,6 +331,119 @@ git remote remove origin
 # 修改远程仓库地址
 git remote set-url origin https://github.com/用户名/新仓库名.git
 ```
+
+---
+
+## 命令对比与深度解析 ⭐⭐⭐
+
+本节详细对比 Git 中容易混淆的命令，帮助你理解每个命令的适用场景。
+
+### 1. git restore vs git reset vs git checkout - 撤销修改
+
+**核心概念**：Git 有三个区域，理解这个就能正确选择命令！
+
+```
+工作区（你看到的文件） → git add → 暂存区（待提交） → git commit → 仓库区（历史）
+```
+
+**命令对比表**：
+
+| 命令 | 作用区域 | 作用 | 何时使用 |
+|------|----------|------|----------|
+| `git restore <文件>` | 工作区 | 用仓库最新提交覆盖工作区 | 撤销工作区修改 |
+| `git restore --staged <文件>` | 暂存区 | 把文件从暂存区移回工作区 | 撤销 git add |
+| `git reset HEAD <文件>` | 暂存区 | 同上（旧语法） | 撤销 git add |
+| `git checkout -- <文件>` | 工作区 | 同 git restore（旧语法） | 撤销工作区修改 |
+
+**场景 1：工作区修改了文件，想撤销**
+```powershell
+# 状态：Changes not staged for commit
+git restore README.md
+# 或者旧语法
+git checkout -- README.md
+# 结果：nothing to commit
+```
+
+**场景 2：文件已 git add，想撤销**
+```powershell
+# 状态：Changes to be committed
+git restore --staged README.md
+# 或者旧语法
+git reset HEAD README.md
+# 结果：Changes not staged（修改还在）
+```
+
+**场景 3：撤销提交**
+```powershell
+git reset --soft HEAD^   # 撤销提交，修改在暂存区
+git reset --hard HEAD^   # ⚠️ 撤销提交，丢弃修改（危险！）
+```
+
+---
+
+### 2. git checkout vs git switch - 切换分支
+
+| 命令 | 用途 | 备注 |
+|------|------|------|
+| `git checkout <分支>` | 切换分支 | 老命令 |
+| `git checkout -b <分支>` | 创建并切换 | 老命令 |
+| `git switch <分支>` | 切换分支 | 新版（推荐） |
+| `git switch -c <分支>` | 创建并切换 | 新版（推荐） |
+
+**推荐**：
+```powershell
+git switch main              # 切换到 main
+git switch -b feature-login  # 创建并切换
+```
+
+---
+
+### 3. git merge vs git rebase - 合并分支
+
+| 命令 | 特点 | 适用场景 |
+|------|------|----------|
+| **git merge** | 保留完整历史，产生合并提交 | 团队协作 |
+| **git rebase** | 线性历史，不产生合并提交 | 个人分支整理 |
+
+**⚠️ 注意**：永远不要对公共分支（main）使用 rebase！
+
+```powershell
+# 合并到主分支
+git checkout main
+git merge feature-login
+
+# 整理个人分支
+git checkout feature
+git rebase main
+```
+
+---
+
+### 4. git pull vs git fetch - 拉取代码
+
+| 命令 | 作用 | 特点 |
+|------|------|------|
+| `git fetch` | 下载远程更新 | 不合并 |
+| `git pull` | 下载并合并 | 自动合并 |
+
+```powershell
+# 快速同步
+git pull
+
+# 更安全的做法
+git fetch origin
+git merge origin/main
+```
+
+---
+
+### 5. git rm 的三种模式
+
+| 命令 | 删除位置 | 文件状态 | 场景 |
+|------|----------|----------|------|
+| `git rm <文件>` | 工作区+仓库 | 文件删除 | 彻底删除 |
+| `git rm --cached <文件>` | 仅仓库 | 文件保留 | 停止跟踪但保留本地 |
+| `git rm -f <文件>` | 工作区+仓库 | 强制删除 | 删除已修改的文件 |
 
 ---
 
