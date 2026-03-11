@@ -2,7 +2,7 @@
 
 > 从零开始，手把手教你使用 Git 和 GitHub，包含所有常见问题解决方案
 
-**版本**: v3.0（命令深度解析版）  
+**版本**: v3.1（远程分支管理版）  
 **最后更新**: 2026-03-12
 
 ---
@@ -262,6 +262,9 @@ git fetch origin
 # 查看所有分支
 git branch
 
+# 查看所有分支（包括远程）
+git branch -a
+
 # 创建新分支
 git branch feature-login
 
@@ -277,6 +280,32 @@ git merge feature-login
 
 # 删除分支
 git branch -d feature-login
+```
+
+#### 6. 远程分支管理
+
+```powershell
+# 查看远程仓库
+git remote -v
+
+# 查看远程仓库详细信息
+git remote show origin
+
+# 查看远程分支
+git branch -r
+
+# 查看所有分支（包括本地和远程）
+git branch -a
+
+# 创建远程分支（本地创建并推送）
+git checkout -b feature-new
+git push -u origin feature-new
+
+# 删除远程分支
+git push origin -d test
+
+# 拉取远程分支到本地
+git checkout -b test origin/test
 ```
 
 ---
@@ -816,6 +845,75 @@ git add "Git-Practice-2026/01-学习笔记/Git 基础.md"
 
 # 3. 或使用相对路径
 git add "01-学习笔记/Git 基础.md"
+```
+
+---
+
+### ❌ 问题 11：本地看不到远程分支
+
+**现象**:
+```
+git branch
+* main
+# 只看到 main，看不到其他远程分支
+```
+
+**原因**:
+- 远程分支是独立的，不会自动下载到本地
+- 需要手动创建本地分支来跟踪远程分支
+
+**解决方案**:
+```powershell
+# 查看所有分支（包括远程）
+git branch -a
+
+# 创建本地分支并关联远程分支
+git checkout -b test origin/test
+
+# 或者用新版命令
+git switch -c test origin/test
+```
+
+---
+
+### ❌ 问题 12：删除远程分支失败
+
+**错误信息**:
+```
+error: unable to delete 'test': ref not found
+```
+
+**原因**:
+- 远程分支不存在
+- 或者已经删除了
+
+**解决方案**:
+```powershell
+# 先查看远程分支
+git branch -r
+
+# 确认分支存在后再删除
+git push origin -d test
+```
+
+---
+
+### ❌ 问题 13：推送后远程分支没显示
+
+**原因**:
+- 推送命令有误
+- 远程仓库刷新延迟
+
+**解决方案**:
+```powershell
+# 检查推送命令是否正确
+git push -u origin branch-name
+
+# 刷新远程分支列表
+git fetch origin
+
+# 查看远程仓库信息
+git remote show origin
 ```
 
 ---

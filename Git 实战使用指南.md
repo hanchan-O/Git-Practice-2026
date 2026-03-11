@@ -1,7 +1,7 @@
 # 🎯 Git 实战使用指南（完整版）
 
 > 从零开始掌握 Git 和 GitHub，包含完整流程、命令详解、多种场景处理和实战任务清单  
-> **版本**: v6.0（命令深度解析版）  
+> **版本**: v6.1（远程分支管理版）  
 > **最后更新**: 2026-03-12
 
 ---
@@ -1124,6 +1124,9 @@ git stash clear
 # 查看远程仓库
 git remote -v
 
+# 查看远程仓库详细信息
+git remote show origin
+
 # 添加远程仓库
 git remote add origin https://github.com/用户名/仓库名.git
 
@@ -1139,7 +1142,93 @@ git remote rename origin upstream
 
 ---
 
-### 7.2 Pull Request 流程
+### 7.2 远程分支管理
+
+**为什么本地看不到其他分支？**
+
+```
+本地分支（git branch）：
+* main
+
+远程分支（git branch -r）：
+  remotes/origin/main       ← GitHub 的 main
+  remotes/origin/test        ← GitHub 的 test
+  remotes/origin/user-login  ← GitHub 的 user-login
+```
+
+| 概念 | 说明 |
+|------|------|
+| **本地分支** | 你电脑上的分支（如 main、feature-xxx） |
+| **远程分支** | GitHub 上的分支的引用（只读） |
+
+**为什么这样设计？**
+- 节省空间：不需要把远程所有分支都下载到本地
+- 按需获取：只用的时候再创建本地分支
+- 安全：避免不小心在本地操作远程分支
+
+#### 查看远程分支
+
+```powershell
+# 查看本地分支
+git branch
+
+# 查看远程分支（仅远程）
+git branch -r
+
+# 查看所有分支（包括本地和远程）
+git branch -a
+
+# 查看分支详情（包括 upstream 关联）
+git branch -vv
+```
+
+#### 创建远程分支
+
+**方法 1：本地创建并推送**（最常用）
+```powershell
+# 1. 创建本地分支
+git checkout -b feature-new
+
+# 2. 推送到远程（自动创建远程分支）
+git push -u origin feature-new
+
+# -u 参数：建立 upstream 关联，之后可以直接 git push
+```
+
+**方法 2：直接创建远程分支**
+```powershell
+# 不需要本地有分支，直接推送
+git push origin local-branch:remote-branch
+
+# 例如：把本地的 main 推送到远程叫 new-branch
+git push origin main:new-branch
+```
+
+#### 删除远程分支
+
+```powershell
+# 删除远程分支（GitHub 上的分支）
+git push origin --delete test
+
+# 或者用简写
+git push origin -d test
+
+# 删除后，远程的 test 分支就没了
+```
+
+#### 拉取远程分支到本地
+
+```powershell
+# 方法 1：创建本地分支并关联远程分支
+git checkout -b test origin/test
+
+# 方法 2：或者用新版命令
+git switch -c test origin/test
+```
+
+---
+
+### 7.3 Pull Request 流程
 
 **步骤 1：创建功能分支**
 ```powershell
@@ -1342,6 +1431,61 @@ git add "目录/文件.md"
 
 # 3. 检查文件是否存在
 ls "目录/文件.md"
+```
+
+---
+
+### ❌ 问题 11: 本地看不到远程分支
+
+**现象**:
+```
+git branch
+* main
+# 只看到 main，其他远程分支呢？
+```
+
+**原因**:
+- 远程分支是独立的引用，不会自动下载到本地
+- 需要手动创建本地分支来跟踪远程分支
+
+**解决方案**:
+```powershell
+# 查看所有分支（包括远程）
+git branch -a
+
+# 创建本地分支并关联远程分支
+git checkout -b test origin/test
+
+# 或者用新版命令
+git switch -c test origin/test
+```
+
+---
+
+### ❌ 问题 12: 删除远程分支
+
+**命令**:
+```powershell
+# 删除远程分支
+git push origin --delete test
+
+# 或者简写
+git push origin -d test
+```
+
+---
+
+### ❌ 问题 13: 推送失败 - 没有上游分支
+
+**错误信息**:
+```
+fatal: The current branch xxx has no upstream branch.
+```
+
+**解决方案**:
+```powershell
+# 首次推送时设置 upstream
+git push -u origin branch-name
 ```
 
 ---
