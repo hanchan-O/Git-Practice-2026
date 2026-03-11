@@ -1,8 +1,8 @@
 # 🎯 Git 实战使用指南（完整版）
 
 > 从零开始掌握 Git 和 GitHub，包含完整流程、命令详解、多种场景处理和实战任务清单  
-> **版本**: v3.0（完整实战版）  
-> **最后更新**: 2026-03-10
+> **版本**: v4.0（实战问题解决版）  
+> **最后更新**: 2026-03-11
 
 ---
 
@@ -18,6 +18,7 @@
 8. [常见问题与解决方案](#8-常见问题与解决方案)
 9. [实战任务清单](#9-实战任务清单) ⭐
 10. [提交规范速查](#10-提交规范速查)
+11. [实战问题解析](#11-实战问题解析) ⭐
 
 ---
 
@@ -69,6 +70,18 @@
 已修改 (Modified)
     ↓ git add
 已暂存 (Staged)
+```
+
+### 1.5 Git 三大区域详解
+
+```
+┌─────────────────────────────────────────┐
+│  仓库区 (Repository)                    │  ← 已保存的历史记录
+├─────────────────────────────────────────┤
+│  暂存区 (Staging Area)                  │  ← 准备提交的"快照"
+├─────────────────────────────────────────┤
+│  工作区 (Working Directory)             │  ← 你实际看到的文件
+└─────────────────────────────────────────┘
 ```
 
 ---
@@ -550,7 +563,7 @@ git push
 git status
 
 # 2. 打开冲突文件，会看到冲突标记
-# <<<<<<< HEAD
+# <<<<<<<<< HEAD
 # 你的修改
 # =======
 # 其他人的修改
@@ -816,6 +829,63 @@ git push
 
 # 方法 2：强制推送（谨慎！）
 git push -f
+```
+
+---
+
+### ❌ 问题 8: git rm 失败
+
+**现象**: `git rm` 报错 "pathspec did not match any files"
+
+**原因**: 路径不正确或文件不存在
+
+**解决方案**:
+```powershell
+# 1. 使用完整路径（包含引号）
+git rm "目录/文件名.md"
+
+# 2. 检查文件是否存在
+git status
+
+# 3. 对于已删除的文件，使用 git add 添加删除操作
+git add "已删除的文件.md"
+```
+
+---
+
+### ❌ 问题 9: git reset HEAD 失败
+
+**现象**: `git reset HEAD` 失败
+
+**原因**: 路径包含空格或中文
+
+**解决方案**:
+```powershell
+# 1. 使用引号包裹路径
+git reset HEAD "包含空格的文件.md"
+
+# 2. 使用相对路径
+git reset HEAD "目录/文件.md"
+```
+
+---
+
+### ❌ 问题 10: git add 失败
+
+**现象**: `git add` 失败
+
+**原因**: 路径解析错误
+
+**解决方案**:
+```powershell
+# 1. 使用引号
+git add "文件名.md"
+
+# 2. 使用正斜杠（即使在 Windows 上）
+git add "目录/文件.md"
+
+# 3. 检查文件是否存在
+ls "目录/文件.md"
 ```
 
 ---
@@ -1246,7 +1316,7 @@ git status
 # ========== 场景 3: 解决冲突 ==========
 # 1. 打开冲突文件
 # 内容类似：
-# <<<<<<< HEAD
+# <<<<<<<<< HEAD
 # main 分支的修改
 # =======
 # feature 分支的修改
@@ -1488,6 +1558,304 @@ git commit -m "文档：补充 GPIO 配置说明"
 
 ---
 
+## 11. 实战问题解析 ⭐
+
+### 11.1 今日实战问题回顾
+
+今天在练习过程中，遇到了以下关键问题：
+
+#### 问题 1: git rm 失败
+
+**现象**:
+```powershell
+git rm Git-Practice-2026\01-学习笔记\Git 基础.md 
+fatal: pathspec 'Git-Practice-2026\01-学习笔记\Git' did not match any files
+```
+
+**分析**:
+- PowerSHell 将路径中的空格解析为分隔符
+- `Git-Practice-2026\01-学习笔记\Git` 被当作一个参数
+- `基础.md` 被当作另一个参数
+
+**解决方案**:
+```powershell
+# 1. 使用引号包裹完整路径
+git rm "Git-Practice-2026\01-学习笔记\Git 基础.md"
+
+# 2. 或使用正斜杠
+git rm "Git-Practice-2026/01-学习笔记/Git 基础.md"
+
+# 3. 或使用相对路径
+git rm "01-学习笔记/Git 基础.md"
+```
+
+---
+
+#### 问题 2: git reset HEAD 与 git restore --staged 的区别
+
+**现象**: 两个命令似乎都能撤销暂存，但结果不同
+
+**分析**:
+
+| 命令 | 作用 | 结果 |
+|------|------|------|
+| `git restore --staged <文件>` | 从暂存区移除 | 文件回到工作区状态 |
+| `git reset HEAD <文件>` | 从暂存区移除 | 与 `git restore --staged` 完全相同 |
+
+**示例**:
+```powershell
+# 初始状态：文件在暂存区（Changes to be committed）
+git status
+# Changes to be committed:
+#   modified: 01-学习笔记/Git 基础.md
+
+# 执行命令
+git restore --staged "01-学习笔记/Git 基础.md"
+
+# 结果：文件在工作区（Changes not staged）
+git status
+# Changes not staged for commit:
+#   modified: 01-学习笔记/Git 基础.md
+```
+
+---
+
+#### 问题 3: git rm 后的状态变化
+
+**现象**: 执行 `git rm` 后，文件在暂存区显示为 deleted
+
+**分析**:
+```
+执行前:
+工作区: 文件存在
+暂存区: (空)
+仓库: 文件存在
+
+执行 git rm "文件":
+工作区: 文件被删除
+暂存区: 删除操作被暂存
+仓库: 文件仍存在
+
+提交后:
+工作区: 文件不存在
+暂存区: (空)
+仓库: 文件被删除
+```
+
+**示例**:
+```powershell
+# 删除文件
+git rm "01-学习笔记/Git 基础.md"
+# 输出: rm '01-学习笔记/Git 基础.md'
+
+# 查看状态
+git status
+# Changes to be committed:
+#   deleted: 01-学习笔记/Git 基础.md
+
+# 提交删除
+git commit -m "删除：Git 基础学习笔记"
+
+# 推送
+git push
+```
+
+---
+
+#### 问题 4: git restore --staged 与 git restore 的区别
+
+**现象**: 两个命令都很相似，但作用不同
+
+**分析**:
+
+| 命令 | 作用对象 | 作用区域 | 结果 |
+|------|----------|----------|------|
+| `git restore --staged <文件>` | 暂存区 | 暂存区 → 工作区 | 从暂存区移除，不影响工作区 |
+| `git restore <文件>` | 工作区 | 仓库 → 工作区 | 从仓库恢复到工作区 |
+| `git restore --staged <文件>` + `git restore <文件>` | 暂存区 + 工作区 | 完全恢复 | 恢复到上次提交状态 |
+
+**示例**:
+```powershell
+# ========== 场景 1: 撤销暂存 ==========
+# 文件已添加到暂存区
+git add "文件.md"
+git status
+# Changes to be committed:
+#   modified: 文件.md
+
+# 撤销暂存
+git restore --staged "文件.md"
+git status
+# Changes not staged for commit:
+#   modified: 文件.md
+
+# ========== 场景 2: 恢复文件 ==========
+# 工作区文件被修改
+# 恢复到上次提交的状态
+git restore "文件.md"
+
+# ========== 场景 3: 完全恢复 ==========
+# 撤销暂存并恢复文件
+git restore --staged "文件.md"  # 从暂存区移除
+git restore "文件.md"           # 从仓库恢复
+```
+
+---
+
+#### 问题 5: 已删除文件的恢复
+
+**现象**: 文件被 `git rm` 删除后，如何恢复
+
+**分析**: 需要区分两种情况
+
+**情况 1: 删除操作在暂存区（未提交）**
+```powershell
+# 状态：Changes to be committed: deleted: 文件.md
+# 恢复方法：
+git restore --staged "文件.md"  # 从暂存区移除删除操作
+git restore "文件.md"           # 从仓库恢复文件
+```
+
+**情况 2: 删除操作已提交**
+```powershell
+# 状态：文件已从仓库删除
+# 恢复方法：
+# 从上一个提交恢复文件
+git checkout HEAD~ -- "文件.md"
+# 或
+git restore --source HEAD~ "文件.md"
+
+# 提交恢复
+git add "文件.md"
+git commit -m "恢复：文件.md"
+```
+
+**情况 3: 删除操作已推送**
+```powershell
+# 从远程仓库恢复
+git checkout HEAD~ -- "文件.md"
+git add "文件.md"
+git commit -m "恢复：文件.md"
+git push
+```
+
+---
+
+### 11.2 实战练习：文件删除与恢复全流程
+
+让我们通过一个完整的练习来理解这些概念：
+
+```powershell
+# ========== 练习 1: 创建测试文件 ==========
+# 1. 创建文件
+echo "原始内容" > "测试文件.md"
+git add "测试文件.md"
+git commit -m "新增：测试文件"
+
+# 2. 查看状态
+git status
+# nothing to commit, working tree clean
+
+# ========== 练习 2: 删除文件（未提交） ==========
+# 1. 删除文件
+git rm "测试文件.md"
+
+# 2. 查看状态
+git status
+# Changes to be committed:
+#   deleted: 测试文件.md
+
+# 3. 恢复文件（未提交状态下的恢复）
+git restore --staged "测试文件.md"  # 撤销暂存的删除操作
+git restore "测试文件.md"           # 从仓库恢复文件
+
+# 4. 查看状态
+git status
+# nothing to commit, working tree clean
+
+# ========== 练习 3: 删除文件（已提交） ==========
+# 1. 删除文件
+git rm "测试文件.md"
+git commit -m "删除：测试文件"
+
+# 2. 查看状态
+git status
+# nothing to commit, working tree clean
+
+# 3. 恢复文件（已提交状态下的恢复）
+git checkout HEAD~ -- "测试文件.md"
+
+# 4. 查看文件内容
+cat "测试文件.md"
+# 应该显示：原始内容
+
+# 5. 提交恢复
+git add "测试文件.md"
+git commit -m "恢复：测试文件"
+```
+
+---
+
+### 11.3 实战练习：撤销操作全流程
+
+```powershell
+# ========== 练习 1: 撤销工作区修改 ==========
+# 1. 修改文件
+echo "新内容" >> "测试文件.md"
+
+# 2. 查看状态
+git status
+# Changes not staged for commit:
+#   modified: 测试文件.md
+
+# 3. 撤销修改
+git restore "测试文件.md"
+
+# 4. 查看文件（回到上次提交状态）
+cat "测试文件.md"
+
+
+# ========== 练习 2: 撤销暂存区修改 ==========
+# 1. 修改文件并添加到暂存区
+echo "新内容" >> "测试文件.md"
+git add "测试文件.md"
+
+# 2. 查看状态
+git status
+# Changes to be committed:
+#   modified: 测试文件.md
+
+# 3. 撤销暂存
+git restore --staged "测试文件.md"
+
+# 4. 查看状态
+git status
+# Changes not staged for commit:
+#   modified: 测试文件.md
+
+
+# ========== 练习 3: 撤销提交（保留修改） ==========
+# 1. 提交修改
+git add "测试文件.md"
+git commit -m "更新：测试文件"
+
+# 2. 撤销提交（保留修改）
+git reset --soft HEAD~
+
+# 3. 查看状态
+git status
+# Changes to be committed:
+#   modified: 测试文件.md
+
+
+# ========== 练习 4: 撤销提交（丢弃修改） ==========
+# 1. 撤销提交并丢弃修改（危险！）
+git reset --hard HEAD~
+# 注意：这会完全丢弃修改，无法恢复！
+```
+
+---
+
 ## 附录：快速参考卡
 
 ### 最常用命令 TOP 10
@@ -1528,5 +1896,5 @@ git branch -d <分支名>        # 删除分支
 
 **祝你学习愉快！** 🚀
 
-**最后更新**: 2026-03-10  
-**版本**: v3.0（完整实战版）
+**最后更新**: 2026-03-11  
+**版本**: v4.0（实战问题解决版）
