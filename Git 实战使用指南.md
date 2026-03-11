@@ -1,7 +1,7 @@
 # 🎯 Git 实战使用指南（完整版）
 
 > 从零开始掌握 Git 和 GitHub，包含完整流程、命令详解、多种场景处理和实战任务清单  
-> **版本**: v4.0（实战问题解决版）  
+> **版本**: v5.0（分支管理与协作版）  
 > **最后更新**: 2026-03-11
 
 ---
@@ -426,7 +426,56 @@ git commit --no-verify
 
 ---
 
-### 4.3 推送与拉取命令
+### 4.5 推送与拉取进阶
+
+#### upstream（上游分支）详解
+
+**什么是 upstream？**
+- upstream = 上游分支
+- 本地分支与远程分支的关联关系
+- 建立关联后，`git push` 和 `git pull` 会自动知道对应的远程分支
+
+**首次推送分支**：
+```powershell
+# 方法 1: 完整写法
+git push --set-upstream origin feature-login
+
+# 方法 2: 简写（推荐）
+git push -u origin feature-login
+
+# 推送成功后，Git 会输出：
+# Branch 'feature-login' set up to track remote branch 'feature-login' from 'origin'.
+```
+
+**建立关联后**：
+```powershell
+# 后续推送（直接）
+git push
+
+# 拉取远程变更
+git pull
+```
+
+**查看 upstream 关联**：
+```powershell
+# 查看分支的 upstream
+git branch -vv
+
+# 输出示例：
+# * feature-login    abc1234 [origin/feature-login] 新增：登录功能
+#   main             def5678 [origin/main] 更新 README
+```
+
+**手动设置 upstream**：
+```powershell
+# 如果分支已经存在但没有 upstream
+git branch --set-upstream-to=origin/feature-login feature-login
+```
+
+**取消 upstream**：
+```powershell
+git branch --unset-upstream feature-login
+```
 
 #### git push（推送到远程）
 
@@ -488,8 +537,11 @@ git branch feature-login
 # 创建并切换分支
 git checkout -b feature-login
 
-# 切换分支
-git checkout feature-login
+# 切换分支（新版）
+git switch feature-login
+
+# 创建并切换分支（新版）
+git switch -c feature-login
 
 # 删除分支（已合并）
 git branch -d feature-login
@@ -499,6 +551,45 @@ git branch -D feature-login
 
 # 重命名分支
 git branch -m old-name new-name
+
+# 查看分支的最后提交
+git branch -v
+```
+
+**分支操作常见问题**：
+
+**Q1: 切换分支时提示 "changes would be overwritten"**
+```powershell
+# 错误信息：
+error: Your local changes to the following files would be overwritten by checkout:
+  file.txt
+
+# 解决方案 1: 先提交更改
+git add .
+git commit -m "保存工作"
+git checkout <分支>
+
+# 解决方案 2: 暂存更改
+git stash
+git checkout <分支>
+git stash pop
+
+# 解决方案 3: 强制切换（会丢失更改！）
+git checkout -f <分支>
+```
+
+**Q2: 删除分支时提示 "not fully merged"**
+```powershell
+# 错误信息：
+error: The branch 'feature/xxx' is not fully merged.
+
+# 解决方案 1: 先合并再删除
+git checkout main
+git merge feature/xxx
+git branch -d feature/xxx
+
+# 解决方案 2: 强制删除（谨慎使用！）
+git branch -D feature/xxx
 ```
 
 ---
@@ -904,6 +995,7 @@ ls "目录/文件.md"
 | **Task 6** | 冲突解决 | merge conflict | 20 分钟 | ⭐⭐⭐ |
 | **Task 7** | 远程协作 | fetch、pull、PR | 25 分钟 | ⭐⭐⭐ |
 | **Task 8** | 综合实战 | 完整流程 | 30 分钟 | ⭐⭐⭐⭐ |
+| **Task 9** | 分支管理进阶 | upstream、推送、同步 | 25 分钟 | ⭐⭐⭐⭐ |
 
 ---
 
@@ -1518,6 +1610,229 @@ git lg
 
 ---
 
+### Task 9: 分支管理进阶 ⭐
+
+**目标**: 掌握分支推送、upstream 关联、远程同步等高级操作。
+
+**验收标准**:
+- [ ] 理解 upstream 概念
+- [ ] 能够推送分支到远程
+- [ ] 能够查看分支关联
+- [ ] 能够同步远程分支
+- [ ] 能够处理推送失败
+
+**操作步骤**:
+
+```powershell
+# ========== 阶段 1: 创建功能分支并开发 ==========
+# 1. 切换到 main 分支
+git checkout main
+git pull
+
+# 2. 创建功能分支
+git checkout -b feature-advanced-branch
+
+# 3. 创建新功能文件
+echo "# 高级分支管理技巧" > "01-Git 基础/高级分支管理.md"
+echo "## upstream 关联" >> "01-Git 基础/高级分支管理.md"
+echo "upstream 是上游分支的关联关系" >> "01-Git 基础/高级分支管理.md"
+
+# 4. 提交
+git add .
+git commit -m "新增：高级分支管理技巧"
+
+
+# ========== 阶段 2: 首次推送到远程 ==========
+# 1. 推送到远程并建立 upstream 关联
+git push -u origin feature-advanced-branch
+
+# 预期输出：
+# Branch 'feature-advanced-branch' set up to track remote branch 'feature-advanced-branch' from 'origin'.
+
+# 2. 查看分支关联
+git branch -vv
+
+# 预期输出：
+# * feature-advanced-branch    abc1234 [origin/feature-advanced-branch] 新增：高级分支管理技巧
+#   main                       def5678 [origin/main] 更新 README
+
+
+# ========== 阶段 3: 继续开发并推送 ==========
+# 1. 继续完善文档
+echo "## 远程同步策略" >> "01-Git 基础/高级分支管理.md"
+echo "git pull = git fetch + git merge" >> "01-Git 基础/高级分支管理.md"
+
+# 2. 提交
+git add .
+git commit -m "更新：补充远程同步策略"
+
+# 3. 推送（已建立关联，直接 git push）
+git push
+
+
+# ========== 阶段 4: 查看和管理 upstream ==========
+# 1. 查看所有分支的 upstream
+git branch -vv
+
+# 2. 查看远程分支
+git branch -r
+
+# 3. 查看所有分支（本地 + 远程）
+git branch -a
+
+# 4. 手动设置 upstream（如果分支已存在但没有关联）
+# git branch --set-upstream-to=origin/feature-advanced-branch feature-advanced-branch
+
+
+# ========== 阶段 5: 同步远程变更 ==========
+# 1. 拉取远程更新
+git pull
+
+# 2. 或者使用 rebase（推荐，保持历史整洁）
+git pull --rebase
+
+# 3. 仅拉取，不合并
+git fetch origin
+git status
+
+
+# ========== 阶段 6: 处理推送冲突 ==========
+# 1. 如果推送失败，提示非快进更新
+# ! [rejected]        feature-advanced-branch -> feature-advanced-branch (non-fast-forward)
+
+# 2. 先拉取远程变更
+git pull --rebase
+
+# 3. 解决冲突（如果有）
+# git status 查看冲突文件
+# 手动编辑解决冲突
+# git add 冲突文件
+# git rebase --continue
+
+# 4. 推送
+git push
+
+
+# ========== 阶段 7: 合并回 main 并清理 ==========
+# 1. 切换回 main
+git checkout main
+
+# 2. 合并功能分支
+git merge feature-advanced-branch
+
+# 3. 推送到远程
+git push
+
+# 4. 删除本地分支
+git branch -d feature-advanced-branch
+
+# 5. 删除远程分支
+git push origin --delete feature-advanced-branch
+
+# 6. 查看最终状态
+git branch -a
+git lg
+```
+
+---
+
+### Task 10: 完整协作流程模拟 ⭐⭐⭐
+
+**目标**: 模拟真实的团队协怍场景，包括 PR 流程、Code Review、冲突解决。
+
+**场景设定**:
+- 你和你的同学协作一个项目
+- 你们同时修改了同一个文件
+- 需要创建 PR、审查代码、解决冲突
+
+**验收标准**:
+- [ ] 创建功能分支
+- [ ] 推送到远程
+- [ ] 创建 Pull Request
+- [ ] 进行 Code Review
+- [ ] 解决合并冲突
+- [ ] 完成合并
+
+**操作步骤**:
+
+```powershell
+# ========== 步骤 1: 准备 ==========
+# 1. 确保在 main 分支
+git checkout main
+git pull
+
+# 2. 创建功能分支
+git checkout -b feature-collaboration
+
+
+# ========== 步骤 2: 开发功能 ==========
+# 1. 修改 README.md
+echo "## 协作开发流程" >> README.md
+echo "1. 创建功能分支" >> README.md
+echo "2. 开发功能" >> README.md
+echo "3. 创建 PR" >> README.md
+
+# 2. 提交
+git add .
+git commit -m "新增：协作开发流程说明"
+
+# 3. 推送
+git push -u origin feature-collaboration
+
+
+# ========== 步骤 3: 创建 Pull Request ==========
+# 1. 访问 GitHub 仓库
+# https://github.com/你的用户名/Git-Practice-2026
+
+# 2. 点击 "New pull request"
+
+# 3. 选择：
+# base: main
+# compare: feature-collaboration
+
+# 4. 填写 PR 信息：
+# 标题：新增：协作开发流程说明
+# 描述：
+# - 添加了协作开发流程的说明
+# - 包含分支创建、PR 流程、Code Review 步骤
+
+
+# ========== 步骤 4: Code Review ==========
+# 1. 在 GitHub 网页查看 PR
+# 2. 点击 "Files changed" 查看变更
+# 3. 点击行号添加评论
+# 4. 点击 "Review changes" 提交审查
+# 5. 选择 "Approve" 批准
+
+
+# ========== 步骤 5: 合并 PR ==========
+# 1. 在 GitHub 网页点击 "Merge pull request"
+# 2. 确认合并
+# 3. 点击 "Confirm merge"
+
+
+# ========== 步骤 6: 本地同步 ==========
+# 1. 切换回 main
+git checkout main
+
+# 2. 拉取最新代码
+git pull
+
+# 3. 查看历史
+git lg
+
+# 4. 删除本地分支
+git branch -d feature-collaboration
+
+
+# ========== 步骤 7: 验证 ==========
+# 1. 查看 GitHub 仓库
+# 2. 确认 PR 已合并
+# 3. 确认文件已更新
+```
+
+---
+
 ## 10. 提交规范速查
 
 ### 最简单的提交格式
@@ -1559,6 +1874,279 @@ git commit -m "文档：补充 GPIO 配置说明"
 ---
 
 ## 11. 实战问题解析 ⭐
+
+### 11.1 git restore vs git reset 详解
+
+**核心区别**：
+- **`git restore`**: 恢复**文件内容**（工作区或暂存区）
+- **`git reset`**: 移动**分支指针**（撤销提交或暂存）
+
+**一句话记忆**：
+> restore 恢复文件，reset 重置指针
+
+#### 详细对比表
+
+| 场景 | 使用命令 | 作用区域 | 示例 |
+|------|----------|----------|------|
+| **撤销工作区修改** | `git restore <文件>` | 仓库 → 工作区 | 文件写错了，恢复到上次提交 |
+| **撤销暂存** | `git restore --staged <文件>` | 暂存区 → 工作区 | 误加了文件，从暂存区移除 |
+| **完全恢复** | `git restore --staged <文件>` + `git restore <文件>` | 暂存区 + 工作区 | 完全撤销所有修改 |
+| **撤销提交** | `git reset --hard HEAD~1` | 分支指针后退 | 提交错了，撤销这次提交 |
+| **撤销暂存（旧方法）** | `git reset HEAD <文件>` | 暂存区 → 工作区 | 同 `git restore --staged` |
+
+#### 状态转换图
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Git 三区域模型                        │
+└─────────────────────────────────────────────────────────┘
+
+工作区 (Working Directory)  ←→  暂存区 (Staging Area)  ←→  仓库区 (Repository)
+      ↑                              ↑                          ↑
+      │                              │                          │
+  git restore                    git restore                git reset
+  git checkout                   git reset HEAD             git reset --hard
+      │                              │                          │
+      ▼                              ▼                          ▼
+  恢复文件内容                   从暂存区移除                移动分支指针
+```
+
+#### 实战场景演示
+
+**场景 1: 修改文件后反悔**
+```powershell
+# 1. 修改文件
+echo "新内容" >> file.txt
+
+# 2. 查看状态
+git status
+# 输出：Changes not staged for commit (工作区修改)
+
+# 3. 撤销修改（恢复到上次提交）
+git restore file.txt
+
+# 4. 验证
+cat file.txt  # 修改消失
+```
+
+**场景 2: 误加文件到暂存区**
+```powershell
+# 1. 添加文件到暂存区
+git add file.txt
+
+# 2. 查看状态
+git status
+# 输出：Changes to be committed (已暂存)
+
+# 3. 从暂存区移除（但保留工作区修改）
+git restore --staged file.txt
+# 或旧方法：git reset HEAD file.txt
+
+# 4. 查看状态
+git status
+# 输出：Changes not staged for commit (回到工作区)
+```
+
+**场景 3: 完全撤销（工作区 + 暂存区）**
+```powershell
+# 1. 已暂存的修改
+git add file.txt
+git commit -m "错误提交"
+
+# 2. 完全撤销
+git reset --hard HEAD~1
+# 这条命令会：
+# - 移动 HEAD 指针到上一次提交
+# - 清空暂存区
+# - 恢复工作区到上次提交状态
+
+# ⚠️ 警告：这会永久删除工作区的修改！
+```
+
+---
+
+### 11.2 Git 输出信息解读
+
+#### 输出 1: "Your branch is ahead of 'origin/main' by 1 commit"
+```
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+```
+
+**含义**：
+- 你的本地 `main` 分支比远程 `origin/main` 多 1 个提交
+- 这个提交还没有推送到远程
+- Git 建议你执行 `git push`
+
+**示意图**：
+```
+本地：A ← B ← C ← D (main)
+                ↑
+              多出的提交
+
+远程：A ← B ← C (origin/main)
+```
+
+**解决方案**：
+```powershell
+git push
+```
+
+---
+
+#### 输出 2: "Changes to be committed"
+```
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+    new file:   src/edm.md
+```
+
+**含义**：
+- `src/edm.md` 已经添加到暂存区
+- 下次提交时会包含这个文件
+- 如果想移除，使用 `git restore --staged src/edm.md`
+
+**状态**：
+```
+工作区：src/edm.md (已创建)
+  ↓ git add
+暂存区：src/edm.md (已暂存) ← 当前状态
+  ↓ git commit
+仓库区：(待提交)
+```
+
+---
+
+#### 输出 3: "fatal: The current branch has no upstream branch"
+```
+fatal: The current branch user-login has no upstream branch.
+To push the current branch and set the remote as upstream, use
+    git push --set-upstream origin user-login
+```
+
+**含义**：
+- `user-login` 是本地新建的分支
+- 远程仓库还没有这个分支
+- Git 不知道要推送到哪里
+
+**解决方案**：
+```powershell
+# 方法 1: 完整写法
+git push --set-upstream origin user-login
+
+# 方法 2: 简写（推荐）
+git push -u origin user-login
+
+# ✅ 推送成功后，Git 会输出：
+# Branch 'user-login' set up to track remote branch 'user-login' from 'origin'.
+```
+
+**建立关联后**：
+```
+本地：user-login ─────┐
+                      ├─→ 关联 (upstream)
+远程：origin/user-login ─┘
+
+之后可以直接：git push
+```
+
+---
+
+#### 输出 4: 推送过程
+```
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Delta compression using up to 12 threads
+Compressing objects: 100% (2/2), done.
+Writing objects: 100% (4/4), 313 bytes | 313.00 KiB/s, done.
+```
+
+**含义**：
+- **Enumerating objects**: 统计要推送的对象（文件、提交等）
+- **Counting objects**: 计算对象数量
+- **Delta compression**: 压缩差异（只推送变化的部分）
+- **Compressing objects**: 压缩数据
+- **Writing objects**: 写入远程仓库
+- ✅ **推送成功！**
+
+---
+
+### 11.3 PowerShell 命令速查
+
+#### 目录操作
+```powershell
+# 创建目录
+mkdir src
+New-Item -ItemType Directory -Force -Path "src"
+
+# 创建多级目录
+mkdir src\components\utils
+New-Item -ItemType Directory -Force -Path "src\components\utils"
+
+# 查看目录内容
+ls
+dir
+Get-ChildItem
+
+# 进入目录
+cd src
+Set-Location src
+
+# 返回上级
+cd ..
+
+# 删除目录（空）
+rmdir empty_folder
+
+# 删除目录及内容（谨慎！）
+Remove-Item -Recurse -Force folder_name
+ri folder_name -r -fo
+```
+
+#### 文件操作
+```powershell
+# 创建文件
+echo "内容" > file.txt
+"内容" | Out-File -FilePath file.txt
+
+# 追加内容
+echo "新内容" >> file.txt
+"新内容" | Out-File -FilePath file.txt -Append
+
+# 查看文件内容
+cat file.txt
+Get-Content file.txt
+type file.txt
+
+# 复制文件
+Copy-Item source.txt destination.txt
+cp source.txt dest.txt
+cpi source.txt dest.txt
+
+# 移动文件
+Move-Item old.txt new.txt
+mv old.txt new.txt
+
+# 删除文件
+Remove-Item file.txt
+del file.txt
+rm file.txt
+```
+
+#### 路径检查
+```powershell
+# 检查文件/目录是否存在
+Test-Path src
+Test-Path file.txt
+
+# 检查后创建（推荐模式）
+if (!(Test-Path src)) { mkdir src }
+```
+
+---
+
+### 11.4 实战问题解析（v4.0 内容）
 
 ### 11.1 今日实战问题回顾
 

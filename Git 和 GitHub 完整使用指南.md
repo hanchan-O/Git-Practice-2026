@@ -2,8 +2,8 @@
 
 > 从零开始，手把手教你使用 Git 和 GitHub，包含所有常见问题解决方案
 
-**版本**: v1.0（完整整合版）  
-**最后更新**: 2026-03-10
+**版本**: v2.0（实战经验整合版）  
+**最后更新**: 2026-03-11
 
 ---
 
@@ -14,8 +14,9 @@
 3. [核心命令教学](#核心命令教学)
 4. [GitHub 使用方法](#github-使用方法)
 5. [常见问题解决](#常见问题解决)
-6. [最佳实践](#最佳实践)
-7. [学习资源](#学习资源)
+6.7. [最佳实践](#最佳实践)
+8. [PowerShell 命令速查](#powershell-命令速查) ⭐
+9. [学习资源](#学习资源)
 
 ---
 
@@ -605,6 +606,106 @@ fatal: unable to access 'https://github.com/...': The requested URL returned err
 
 ---
 
+### ❌ 问题 8：分支推送失败 - "no upstream branch"
+
+**错误信息**:
+```
+fatal: The current branch feature-login has no upstream branch.
+To push the current branch and set the remote as upstream, use
+    git push --set-upstream origin feature-login
+```
+
+**原因**:
+- 功能分支是本地新建的
+- 远程仓库还没有这个分支
+- Git 不知道要推送到哪个远程分支
+
+**解决方案**:
+```powershell
+# 方法 1: 完整写法
+git push --set-upstream origin feature-login
+
+# 方法 2: 简写（推荐）
+git push -u origin feature-login
+
+# 推送成功后，Git 会输出：
+# Branch 'feature-login' set up to track remote branch 'feature-login' from 'origin'.
+```
+
+**什么是 upstream?**
+- upstream = 上游分支
+- 建立关联后，`git push` 和 `git pull` 会自动知道对应的远程分支
+- 第一次推送时必须指定 `-u` 参数
+
+**查看 upstream 关联**:
+```powershell
+# 查看分支的 upstream
+git branch -vv
+
+# 输出示例：
+# * feature-login    abc1234 [origin/feature-login] 新增：登录功能
+#   main             def5678 [origin/main] 更新 README
+```
+
+---
+
+### ❌ 问题 9：切换分支失败 - "changes would be overwritten"
+
+**错误信息**:
+```
+error: Your local changes to the following files would be overwritten by checkout:
+  file.txt
+```
+
+**原因**:
+- 工作区有未提交的修改
+- 切换分支会覆盖这些修改
+- Git 阻止你丢失工作
+
+**解决方案**:
+```powershell
+# 方案 1: 先提交更改
+git add .
+git commit -m "保存工作"
+git checkout <分支>
+
+# 方案 2: 暂存更改
+git stash
+git checkout <分支>
+git stash pop
+
+# 方案 3: 强制切换（会丢失更改！）
+git checkout -f <分支>
+```
+
+---
+
+### ❌ 问题 10：PowerShell 中文路径问题
+
+**错误信息**:
+```
+fatal: pathspec 'Git-Practice-2026\01-学习笔记\Git' did not match any files
+```
+
+**原因**:
+- PowerShell 将路径中的空格解析为分隔符
+- `Git-Practice-2026\01-学习笔记\Git` 被当作一个参数
+- `基础.md` 被当作另一个参数
+
+**解决方案**:
+```powershell
+# 1. 使用引号包裹完整路径
+git add "Git-Practice-2026\01-学习笔记\Git 基础.md"
+
+# 2. 或使用正斜杠（推荐）
+git add "Git-Practice-2026/01-学习笔记/Git 基础.md"
+
+# 3. 或使用相对路径
+git add "01-学习笔记/Git 基础.md"
+```
+
+---
+
 ## 最佳实践
 
 ### 1. Commit 信息规范
@@ -734,6 +835,98 @@ git co master
 git br
 git ci -m "提交信息"
 git lg
+```
+
+---
+
+## PowerShell 命令速查 ⭐
+
+### 目录操作
+
+```powershell
+# 创建目录
+mkdir src
+New-Item -ItemType Directory -Force -Path "src"
+
+# 创建多级目录
+mkdir src\components\utils
+New-Item -ItemType Directory -Force -Path "src\components\utils"
+
+# 查看目录内容
+ls
+dir
+Get-ChildItem
+
+# 进入目录
+cd src
+Set-Location src
+
+# 返回上级
+cd ..
+
+# 删除目录（空）
+rmdir empty_folder
+
+# 删除目录及内容（谨慎！）
+Remove-Item -Recurse -Force folder_name
+ri folder_name -r -fo
+```
+
+### 文件操作
+
+```powershell
+# 创建文件
+echo "内容" > file.txt
+"内容" | Out-File -FilePath file.txt
+
+# 追加内容
+echo "新内容" >> file.txt
+"新内容" | Out-File -FilePath file.txt -Append
+
+# 查看文件内容
+cat file.txt
+Get-Content file.txt
+type file.txt
+
+# 复制文件
+Copy-Item source.txt destination.txt
+cp source.txt dest.txt
+cpi source.txt dest.txt
+
+# 移动文件
+Move-Item old.txt new.txt
+mv old.txt new.txt
+
+# 删除文件
+Remove-Item file.txt
+del file.txt
+rm file.txt
+```
+
+### 路径检查
+
+```powershell
+# 检查文件/目录是否存在
+Test-Path src
+Test-Path file.txt
+
+# 检查后创建（推荐模式）
+if (!(Test-Path src)) { mkdir src }
+```
+
+### Git 命令中的路径处理
+
+```powershell
+# ✅ 正确：使用引号包裹包含空格或中文的路径
+git add "01-学习笔记/Git 基础.md"
+git rm "包含空格的文件.md"
+git commit -m "提交：更新 01-学习笔记/文件"
+
+# ✅ 正确：使用正斜杠（即使在 Windows 上）
+git add "目录/子目录/文件.md"
+
+# ❌ 错误：不使用引号（会被解析为多个参数）
+git add 01-学习笔记/Git 基础.md  # 会失败！
 ```
 
 ---
