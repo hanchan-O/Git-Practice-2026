@@ -518,6 +518,80 @@ git branch -r
 
 ---
 
+#### git fetch vs git pull - 详细对比 ⭐⭐⭐
+
+**核心区别**：
+
+| 命令 | 下载远程更新 | 自动合并 | 安全性 | 推荐使用场景 |
+|------|:----------:|:--------:|:------:|--------------|
+| `git fetch` | ✅ | ❌ | ✅ 安全 | 想先查看远程变化 |
+| `git pull` | ✅ | ✅ | ⚠️ 可能冲突 | 日常快速同步 |
+
+**图解 fetch vs pull**：
+
+```
+远程仓库 (GitHub)
+    │
+    │   git pull = 下载 + 自动合并
+    ↓   ─────────────────────
+本地仓库 main 分支 ← 自动合并（可能冲突）
+    │
+    │   git fetch = 只下载
+    ↓   ─────────────────────
+本地 origin/main（远程副本，只读）
+```
+
+**场景 1：日常开发，快速同步**
+```powershell
+# 直接用 pull，最简单
+git pull
+```
+
+**场景 2：团队协作，先查看变化**
+```powershell
+# 1. 先下载看看有什么变化
+git fetch origin
+
+# 2. 查看远程有什么新提交
+git log main..origin/main
+
+# 3. 查看具体变化（文件差异）
+git diff main origin/main
+
+# 4. 确认没问题后再合并
+git merge origin/main
+```
+
+**场景 3：拉取远程分支到本地**
+```powershell
+# 1. 先下载远程分支信息
+git fetch origin
+
+# 2. 创建本地分支并关联远程分支
+git checkout -b test origin/test
+
+# 或者用新版命令
+git switch -c test origin/test
+```
+
+**最佳实践推荐**：
+```powershell
+# 日常开发：直接用 pull
+git pull
+
+# 重要项目或不确定时：用 fetch + merge
+git fetch origin
+git diff main origin/main  # 先看变化
+git merge origin/main      # 再合并
+```
+
+**总结**：
+- `git pull = git fetch + git merge`
+- `pull` 一步完成，`fetch` 需要两步
+- `fetch` 更安全，可以先查看再合并
+
+---
+
 ### 4.4 分支管理命令
 
 #### git branch（分支操作）
@@ -597,6 +671,13 @@ git branch -D feature/xxx
 
 #### git merge（合并分支）
 
+**git merge 是本地操作**，用于合并两个分支。
+
+**作用对象**：
+- 本地分支 ← 本地分支
+- 本地分支 ← origin/远程分支（远程分支的本地副本）
+
+**基本用法**：
 ```powershell
 # 切换到目标分支
 git checkout main
@@ -607,6 +688,59 @@ git merge feature-login
 # 查看合并历史
 git log --oneline --graph --all
 ```
+
+**场景 1：合并本地分支**
+```powershell
+# 把 feature-login 合并到 main
+git checkout main
+git merge feature-login
+```
+
+**场景 2：合并远程分支**
+```powershell
+# 把远程的 main 合并到本地 main
+git checkout main
+git merge origin/main
+# origin/main 是远程分支的本地副本
+```
+
+**场景 3：先 fetch 再 merge**
+```powershell
+# 1. 下载远程更新
+git fetch origin
+
+# 2. 查看变化
+git diff main origin/main
+
+# 3. 合并远程分支
+git merge origin/main
+```
+
+**merge vs rebase**：
+
+| 命令 | 特点 | 提交历史 | 适用场景 |
+|------|------|----------|----------|
+| **git merge** | 保留完整历史 | 产生合并提交 | 团队协作、公共分支 |
+| **git rebase** | 线性历史 | 不产生合并提交 | 个人分支整理 |
+
+**图解对比**：
+
+```
+git merge（产生分叉）：
+A---B---C---M---main
+     \         /
+      D---E---F---feature
+→ 保留完整历史，有合并提交 M
+
+git rebase（线性历史）：
+A---B---C---D---E---F---main
+→ 历史是一条线，没有合并提交
+```
+
+**⚠️ 重要警告**：
+- ✅ 可以对个人分支使用 rebase
+- ❌ **永远不要对公共分支（main）使用 rebase**
+- ❌ 不要对已经推送的分支使用 rebase
 
 ---
 
