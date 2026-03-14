@@ -1,7 +1,7 @@
 # 🎯 Git 实战使用指南（完整版）
 
 > 从零开始掌握 Git 和 GitHub，包含完整流程、命令详解、多种场景处理和实战任务清单  
-> **版本**: v6.1（远程分支管理版）  
+> **版本**: v6.3（通俗易懂版）  
 > **最后更新**: 2026-03-12
 
 ---
@@ -541,6 +541,71 @@ git branch -r
 本地 origin/main（远程副本，只读）
 ```
 
+---
+
+**为什么 git diff main origin/main 看不到差异？**
+
+**答案**：因为你的本地和远程**完全同步**！
+
+```
+场景 A：刚推送完，本地 = 远程
+本地 main:   A---B---C
+远程 main:   A---B---C  ← 完全一样
+git diff main origin/main  → 没有差异（空输出）
+
+场景 B：别人推送了新提交
+本地 main:   A---B---C
+远程 main:   A---B---C---D  ← 远程多了 D
+git diff main origin/main  → 能看到 D 的变化
+```
+
+**实际例子**：
+
+```powershell
+# 你的情况：刚推送完，本地和远程一样
+git fetch origin
+git diff main origin/main
+# （空输出，因为没有差异）
+
+# 想看差异？先制造差异：
+# 1. 让同事在 GitHub 上修改 README.md 并推送
+# 2. 或者你在 GitHub 网页上修改文件并 commit
+# 3. 然后你再执行：
+git fetch origin
+git diff main origin/main
+# 现在就能看到差异了！
+```
+
+**查看远程有什么新提交**：
+
+```powershell
+# 1. 下载远程更新
+git fetch origin
+
+# 2. 查看远程比本地多了什么提交
+git log main..origin/main
+# 输出示例：
+# commit abc1234 (origin/main)
+# Author: 同事
+# Date:   今天
+#     新增：添加用户登录功能
+
+# 3. 查看具体文件差异
+git diff main origin/main
+# 输出示例：
+# diff --git a/README.md b/README.md
+# + 新增了一行内容...
+
+# 4. 查看简洁的差异（哪些文件变了）
+git diff --stat main origin/main
+# 输出示例：
+#  README.md | 5 +++++
+#  src/login.py | 50 ++++++++++++++++++++++++++++++++++++++++++
+#  2 files changed, 55 insertions(+)
+```
+
+---
+
 **场景 1：日常开发，快速同步**
 ```powershell
 # 直接用 pull，最简单
@@ -589,6 +654,7 @@ git merge origin/main      # 再合并
 - `git pull = git fetch + git merge`
 - `pull` 一步完成，`fetch` 需要两步
 - `fetch` 更安全，可以先查看再合并
+- **刚推送完后，本地和远程一样，diff 没有差异**
 
 ---
 
@@ -931,43 +997,174 @@ git checkout -- README.md    # 撤销文件修改 ← 容易混淆
 | **git merge** | 保留完整历史 | 产生合并提交 | 团队协作、公共分支 |
 | **git rebase** | 线性历史 | 不产生合并提交 | 个人分支整理 |
 
-##### 图解对比
+##### 图解对比（通俗易懂版）
 
-**git merge（产生分叉）**：
+**故事背景**：
+- 你在 `feature-login` 分支开发登录功能
+- 同时，同事在 `main` 分支继续开发
+- 现在你要把 feature 合并到 main
+
+**git merge（保留完整历史）**：
 ```
-A---B---C---M---main
-     \         /
-      D---E---F---feature
+时间线：
+main:    A---B---C
+              \
+feature:       D---E---F
+
+执行 git merge feature 后：
+
+main:    A---B---C---M
+              \     /
+feature:       D---E---F
+
+M = 合并提交（Merge Commit）
 ```
-- 保留完整历史
-- 有一个合并提交 M
+- ✅ 保留完整历史：能看到什么时候合并的
+- ✅ 安全：不会修改历史
+- ⚠️ 历史有分叉：像树枝一样
 
 **git rebase（线性历史）**：
 ```
-A---B---C---D---E---F---main
-                           (feature 先 D-E-F 再 rebase)
-```
-- 历史是一条线
-- 没有合并提交
-- ⚠️ 不要对公共分支使用！
+时间线：
+main:    A---B---C
+              \
+feature:       D---E---F
 
-##### 什么时候用哪个？
+执行 git rebase main 后：
+
+main:    A---B---C
+feature:         D'--E'--F'
+
+把 feature "嫁接" 到 main 的最新位置
+```
+- ✅ 历史是一条直线：好看
+- ✅ 没有合并提交：简洁
+- ⚠️ 修改了历史：D-E-F 变成 D'-E'-F'
+
+---
+
+##### 实际例子（超详细版）
+
+**场景 1：合并功能分支到 main（用 merge）**
 
 ```powershell
-# ✅ 使用 merge：合并功能分支到主分支
-git checkout main
-git merge feature-login
-# 产生清晰的合并记录
+# 你在 feature-login 开发了 3 个提交
+git checkout feature-login
+git log --oneline
+# abc1234 新增：登录页面
+# def5678 新增：验证逻辑
+# ghi9012 修复：样式问题
 
-# ✅ 使用 rebase：整理个人开发分支
-# 假设你在 feature 分支开发，main 有新提交
+# 切换回 main
+git checkout main
+
+# 合并 feature-login
+git merge feature-login
+# 输出：
+# Merge made by the 'ort' strategy.
+#  src/login.py (new)
+#  templates/login.html (new)
+
+# 查看历史（有合并提交）
+git log --oneline --graph
+# *   M  Merge branch 'feature-login'
+# |\  
+# | * abc1234 新增：登录页面
+# | * def5678 新增：验证逻辑
+# | * ghi9012 修复：样式问题
+# * | C  main 的最新提交
+```
+
+**场景 2：整理个人分支（用 rebase）**
+
+```powershell
+# 你在 feature 分支开发，但 main 已经有新提交
+git checkout feature-login
+git log --oneline main..feature-login
+# abc1234 新增：登录页面
+# def5678 新增：验证逻辑
+
+# 此时 main 有新提交
+git fetch origin
+git log --oneline main..origin/main
+# xyz7890 新增：用户注册功能
+
+# 用 rebase 把 feature 嫁接到最新 main
+git rebase main
+# 输出：
+# First, rewinding head to replay your changes on top of HEAD...
+# Applying: 新增：登录页面
+# Applying: 新增：验证逻辑
+
+# 查看历史（变成直线）
+git log --oneline --graph
+# * abc1234' 新增：登录页面  ← 注意：提交 ID 变了
+# * def5678' 新增：验证逻辑
+# * xyz7890 新增：用户注册功能
+# * C  main 的提交
+```
+
+---
+
+##### ⚠️ 重要警告（必读！）
+
+**✅ 可以对个人分支使用 rebase**：
+```powershell
+# 你的本地分支，还没推送
 git checkout feature-login
 git rebase main
-# 把 feature 的基础从 C 移到最新的 main
-
-# ❌ 永远不要对公共分支（main）使用 rebase！
-# 这会修改公共历史，影响其他人
 ```
+
+**❌ 永远不要对公共分支使用 rebase**：
+```powershell
+# ❌ 错误！main 是公共分支
+git checkout main
+git rebase feature-login
+
+# ❌ 错误！已经推送的分支
+git checkout feature-shared  # 多人使用的分支
+git rebase main
+```
+
+**为什么？**
+```
+场景：你和同事都在 feature-shared 分支开发
+
+你的本地：
+feature-shared: A---B---C
+
+同事的本地：
+feature-shared: A---B---C
+
+你对 feature-shared 执行 rebase：
+你的本地：
+feature-shared: D---E---F  ← 历史被修改了！
+
+同事再推送时：
+# 冲突！历史不一致
+```
+
+**后果**：
+- 同事的提交历史和你不一致
+- 需要强制推送（`git push -f`）
+- 破坏团队协作
+
+---
+
+##### 总结：什么时候用哪个？
+
+| 场景 | 推荐命令 | 原因 |
+|------|---------|------|
+| 合并功能分支到 main | `git merge` | 保留完整历史，安全 |
+| 整理个人本地分支 | `git rebase` | 历史简洁好看 |
+| 同步 main 到个人分支 | `git rebase` | 避免合并提交 |
+| 公共分支（多人使用） | **只用 merge** | 不要修改历史 |
+| 已经推送的分支 | **只用 merge** | 避免冲突 |
+
+**一句话记忆**：
+- **merge** = 团队协作，安全第一
+- **rebase** = 个人整理，历史美观
+- **公共分支永远不要用 rebase**
 
 ---
 
