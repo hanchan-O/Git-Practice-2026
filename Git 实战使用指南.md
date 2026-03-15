@@ -1,7 +1,7 @@
 # 🎯 Git 实战使用指南（完整版）
 
 > 从零开始掌握 Git 和 GitHub，包含完整流程、命令详解、多种场景处理和实战任务清单  
-> **版本**: v6.4（问答完善版）  
+> **版本**: v6.5（git rm 修正版）  
 > **最后更新**: 2026-03-12
 
 ---
@@ -1256,37 +1256,145 @@ git stash clear              # 清空所有暂存
 
 ---
 
-#### 4.6.6 git rm 的三种模式
+#### 4.6.6 git rm 的三种模式 ⭐⭐⭐
 
 **问题**：git rm、git rm --cached、git rm -f 有什么区别？
 
-##### 对比
+##### 核心对比表
 
-| 命令 | 删除位置 | 文件状态 | 场景 |
-|------|----------|----------|------|
-| `git rm <文件>` | 工作区 + 仓库 | 文件被删除 | 彻底删除文件 |
-| `git rm --cached <文件>` | 仅仓库 | 文件保留在本地 | 不想跟踪但保留本地 |
-| `git rm -f <文件>` | 工作区 + 仓库 | 强制删除 | 删除已修改的文件 |
+| 命令 | 工作区 | Git 仓库 | 远程仓库 | 用途 |
+|------|:------:|:--------:|:--------:|------|
+| `git rm <文件>` | ❌ 删除 | ❌ 删除 | 需 push | 彻底删除文件 |
+| `git rm --cached <文件>` | ✅ 保留 | ❌ 删除 | 需 push | 停止跟踪但保留本地 |
+| `git rm -f <文件>` | ❌ 删除 | ❌ 删除 | 需 push | 强制删除（即使有修改） |
+| `rm <文件>` (系统命令) | ❌ 删除 | ✅ 保留 | 不变 | Git 不知道 |
 
-##### 详细示例
+**重要说明**：
+- ⚠️ **远程仓库不会自动删除**！所有删除操作都需要 `git push` 才同步到远程
+- ⚠️ `git rm --cached` 后，文件变成"未跟踪"状态，本地仍然存在
+- ⚠️ 想真正删除本地文件，需要用系统命令 `rm` 或 `del`
+
+##### 详细图解
+
+**场景 1：彻底删除文件（本地和 Git 都删除）**
+```powershell
+# 方法 A：用 git rm（推荐）
+git rm test-file.md
+git commit -m "删除：彻底移除 test-file.md"
+git push origin main
+# 结果：
+# - 工作区：文件删除 ❌
+# - Git 仓库：删除记录 ❌
+# - 远程仓库：推送后删除 ❌
+
+# 方法 B：先系统删除，再通知 Git
+rm test-file.md              # Windows 用 del test-file.md
+git add test-file.md         # 通知 Git 文件已删除
+git commit -m "删除：test-file.md"
+git push
+```
+
+**场景 2：停止跟踪（保留本地文件）⭐**
+```powershell
+# 用途：.env 配置文件、IDE 设置等，本地需要但不想提交
+
+# 1. 从 Git 删除（保留本地）
+git rm --cached .env
+git commit -m "删除：停止跟踪.env 文件"
+
+# 2. 推送到远程
+git push origin main
+# 结果：
+# - 工作区：.env 文件还在 ✅
+# - Git 仓库：不再跟踪 ❌
+# - 远程仓库：推送后删除 ❌
+
+# 3. 添加到.gitignore（防止再次被跟踪）
+echo ".env" >> .gitignore
+git add .gitignore
+git commit -m "添加：.env 到.gitignore"
+```
+
+**场景 3：强制删除（即使文件有修改）**
+```powershell
+# 场景：文件有修改，普通删除会失败
+echo "修改内容" >> important.txt
+git rm important.txt
+# fatal: file contains modifications (cannot be removed without '-f')
+
+# 强制删除
+git rm -f important.txt
+git commit -m "删除：强制移除 important.txt"
+```
+
+**场景 4：只删除工作区（Git 继续跟踪）**
+```powershell
+# 场景：删除编译产物，但保留源代码跟踪
+rm build/output.exe
+# 或 Windows: del build\output.exe
+
+git status
+# deleted: build/output.exe
+
+# 如果想通知 Git
+git add build/output.exe
+git commit -m "删除：编译产物"
+```
+
+##### 常见错误
+
+**错误 1：对同一个文件重复删除**
+```powershell
+# 第一次删除（成功）
+git rm --cached test.md
+git commit -m "删除：test.md"
+
+# 第二次删除（失败）
+git rm test.md
+# fatal: pathspec 'test.md' did not match any files
+# 原因：文件已经从 Git 删除了，不能再 rm
+```
+
+**错误 2：以为远程会自动删除**
+```powershell
+# 本地删除
+git rm test.md
+git commit -m "删除：test.md"
+
+# 查看远程（文件还在！）
+git ls-files
+# test.md 不在了（本地 Git）
+
+git ls-remote origin
+# 远程还在！需要 push
+
+# 推送到远程
+git push origin main
+# 现在远程也删除了
+```
+
+##### 实际例子
 
 ```powershell
-# 场景 1：彻底删除文件（本地和 Git 都删除）
-git rm big-file.zip
-# 工作区：文件删除
-# 暂存区：删除操作已暂存
-# 提交后：Git 也不再跟踪
+# 例子 1：删除敏感配置文件
+git rm --cached .env
+git commit -m "安全：移除.env 文件"
+git push
+echo ".env" >> .gitignore
 
-# 场景 2：仅从 Git 移除（保留本地文件）
-git rm --cached big-file.zip
-# 工作区：文件保留
-# 暂存区：移除跟踪操作已暂存
-# 提交后：Git 不再跟踪，但本地文件还在
-# 常用于：.gitignore 生效前已跟踪的文件
+# 例子 2：删除大型二进制文件
+git rm data/large-file.bin
+git commit -m "删除：大型二进制文件"
+git push
 
-# 场景 3：强制删除（删除修改过的文件）
-git rm -f important.txt
-# 即使文件有修改，也强制删除
+# 例子 3：删除编译产物
+rm -rf build/
+git add build/
+git commit -m "删除：清理编译产物"
+
+# 例子 4：强制删除修改过的文件
+git rm -f temp-notes.txt
+git commit -m "删除：临时笔记"
 ```
 
 ---
@@ -2373,13 +2481,31 @@ echo "测试文件" > "test-删除.md"
 git add "test-删除.md"
 git commit -m "新增：测试文件"
 
-# 2. 从 Git 删除（保留本地文件）
+# 2. 停止跟踪（保留本地文件）⭐
+# 用途：配置文件、.env 等不想提交但本地需要
 git rm --cached "test-删除.md"
-git commit -m "删除：从 Git 移除测试文件"
+git commit -m "删除：停止跟踪 test-删除.md（保留本地）"
+git push  # 推送到远程仓库
 
-# 3. 彻底删除（本地和 Git 都删除）
+# 3. 彻底删除（本地和 Git 都删除）⭐
+# 用途：临时文件、不需要的文件
+# 方法 A：用 git rm（一步完成）
 git rm "test-删除.md"
-git commit -m "删除：彻底移除测试文件"
+git commit -m "删除：彻底移除 test-删除.md"
+git push
+
+# 方法 B：先系统删除，再通知 Git
+rm "test-删除.md"           # 或用 del (Windows)
+git add "test-删除.md"      # 通知 Git 文件已删除
+git commit -m "删除：彻底移除"
+git push
+
+# 4. 只删除工作区（Git 继续跟踪）
+# 用途：删除编译产物，但保留源代码
+rm build/output.exe
+git status                  # 显示 deleted
+git add build/output.exe    # 通知 Git
+git commit -m "删除：编译产物"
 
 
 # ========== 场景 4: 查看历史 ==========
