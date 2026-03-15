@@ -1,7 +1,7 @@
 # 🎯 Git 实战使用指南（完整版）
 
 > 从零开始掌握 Git 和 GitHub，包含完整流程、命令详解、多种场景处理和实战任务清单  
-> **版本**: v6.6（冲突制造修正版）  
+> **版本**: v6.7（冲突解决 + stash 完善版）  
 > **最后更新**: 2026-03-12
 
 ---
@@ -1213,32 +1213,104 @@ git rebase origin/main
 
 ---
 
-#### 4.6.5 git stash 的使用场景
+#### 4.6.5 git stash 的使用场景 ⭐⭐⭐
 
 **问题**：什么时候需要暂存工作？
 
+##### 核心原则
+
+**需要 git stash**：
+- ✅ 工作区有**未提交的修改**
+- ✅ 想切换分支
+- ✅ 修改会**被覆盖**（冲突）
+
+**不需要 git stash**：
+- ✅ 工作区干净（已提交）
+- ✅ 修改不会冲突（Git 自动处理）
+
 ##### 使用场景
 
+**场景 1：临时切换分支，但不想提交当前工作 ⭐**
 ```powershell
-# 场景 1：临时切换分支，但不想提交当前工作
 # 你在 feature 分支开发到一半，需要紧急切换到 main 修 bug
+git status
+# modified: README.md (未提交)
+
 git stash                    # 暂存当前工作
 git checkout main
 # ... 修 bug ...
 git checkout feature
 git stash pop                # 恢复工作
+```
 
-# 场景 2：拉取远程更新，但本地有冲突
+**场景 2：拉取远程更新，但本地有冲突**
+```powershell
+# 本地有修改，直接 pull 会冲突
 git stash                    # 先暂存
 git pull                     # 拉取远程
 git stash pop                # 恢复并解决冲突
+```
 
-# 场景 3：想查看某个分支的干净状态
+**场景 3：想查看某个分支的干净状态**
+```powershell
+# 当前分支有修改，想临时查看其他分支
 git stash
 git checkout other-branch
 # ... 查看 ...
 git checkout original-branch
 git stash pop
+```
+
+**场景 4：工作区干净，不需要 stash ⭐**
+```powershell
+# 已经提交了所有修改
+git status
+# nothing to commit, working tree clean
+
+# 直接切换，不需要 stash
+git checkout feature
+# ✅ 成功！
+```
+
+**场景 5：修改不冲突，不需要 stash ⭐**
+```powershell
+# main 分支：修改了 A.md（未提交）
+# feature 分支：没有修改 A.md
+
+# Git 允许切换，修改会带到 feature 分支
+git checkout feature
+# ✅ 成功！但会警告
+# warning: unable to rmdir 'A.md': File exists
+
+git status
+# modified: A.md (修改被带过来了)
+```
+
+##### 切换分支前的标准检查流程 ⭐
+
+```powershell
+# 1. 检查状态
+git status
+
+# 2. 根据情况决定：
+# A. 工作区干净 → 直接切换
+git checkout feature
+
+# B. 有修改，想保留 → 提交
+git add .
+git commit -m "完成部分工作"
+git checkout feature
+
+# C. 有修改，不想提交 → 暂存
+git stash
+git checkout feature
+# 完成后...
+git checkout main
+git stash pop
+
+# D. 有修改，不需要 → 放弃
+git restore .
+git checkout feature
 ```
 
 ##### stash 命令详解
@@ -1252,6 +1324,33 @@ git stash pop                # 恢复最近的暂存（并删除）
 git stash apply              # 恢复最近的暂存（不删除）
 git stash drop               # 删除最近的暂存
 git stash clear              # 清空所有暂存
+```
+
+##### 实际例子
+
+```powershell
+# 例子 1：开发到一半，临时修 bug
+git stash
+git checkout main
+# 修复 bug...
+git commit -m "修复：紧急 bug"
+git checkout feature
+git stash pop
+
+# 例子 2：多个暂存的管理
+git stash push -m "登录功能"
+git stash push -m "支付功能"
+git stash list
+# stash@{0}: WIP on feature: 支付功能
+# stash@{1}: WIP on feature: 登录功能
+git stash pop stash@{1}  # 恢复指定的暂存
+
+# 例子 3：查看但不恢复
+git stash
+git checkout other-branch
+# 查看...
+git checkout -
+git stash apply  # 恢复但不删除
 ```
 
 ---
@@ -2718,45 +2817,21 @@ git push
 
 ```powershell
 # ========== 场景 1: 制造冲突 ==========
-# ⚠️ 关键：必须修改同一个文件的同一行（不是追加！）
-
-# 方法 A：覆盖写入（简单，推荐）⭐
 # 1. 确保在 main 分支
 git checkout main
 
-# 2. 创建测试文件并修改（覆盖写入，不是追加）
-echo "main 版本" > "test-冲突.txt"
+# 2. 修改文件
+echo "main 分支的修改" > "01-Git 基础/命令速查.md"
 git add .
-git commit -m "main 版本"
+git commit -m "更新：main 分支修改"
 
 # 3. 创建并切换到功能分支
 git checkout -b feature-conflict
 
-# 4. 修改同一个文件（覆盖写入，制造冲突）
-echo "feature 版本" > "test-冲突.txt"
+# 4. 修改同一个文件的同一行
+echo "feature 分支的修改" > "01-Git 基础/命令速查.md"
 git add .
-git commit -m "feature 版本"
-
-# 方法 B：修改现有文件的同一行（真实场景）
-# 1. 确保在 main 分支
-git checkout main
-
-# 2. 修改 README.md 的第一行
-$content = Get-Content "README.md"
-$content[0] = "# 项目名称（main 修改）"
-$content | Set-Content "README.md"
-git add .
-git commit -m "main 修改标题"
-
-# 3. 创建功能分支
-git checkout -b feature-conflict
-
-# 4. 修改同一行
-$content = Get-Content "README.md"
-$content[0] = "# 项目名称（feature 修改）"
-$content | Set-Content "README.md"
-git add .
-git commit -m "feature 修改标题"
+git commit -m "更新：feature 分支修改"
 
 
 # ========== 场景 2: 合并产生冲突 ==========
@@ -2768,35 +2843,82 @@ git merge feature-conflict
 
 # 3. 查看状态（会显示冲突文件）
 git status
+# 输出：
+# On branch main
+# You have unmerged paths.
+#   (fix conflicts and run "git commit")
+#
+# Unmerged paths:
+#   (use "git add <file>..." to mark resolution)
+#         both modified: test-冲突.txt
 
 
 # ========== 场景 3: 解决冲突 ==========
-# 1. 打开冲突文件
-# 内容类似：
-# <<<<<<<<< HEAD
-# main 分支的修改
+# ⚠️ 合并冲突时，Git 会提示 CONFLICT
+
+# 1. 查看冲突状态
+git status
+# 输出：
+# On branch main
+# You have unmerged paths.
+#   (fix conflicts and run "git commit")
+#
+# Unmerged paths:
+#   (use "git add <file>..." to mark resolution)
+#         both modified: test-冲突.txt
+
+# 2. 查看冲突内容
+Get-Content "test-冲突.txt"
+# 输出（冲突标记）：
+# <<<<<<< HEAD
+# main 版本
 # =======
-# feature 分支的修改
+# feature 版本
 # >>>>>>> feature-conflict
 
-# 2. 手动编辑，保留需要的内容，删除冲突标记
-# 例如：
-# main 分支和 feature 分支的修改（合并后的内容）
+# 冲突标记说明：
+# <<<<<<< HEAD        ← 从这里开始是当前分支（main）的内容
+# main 版本
+# =======             ← 分隔线
+# feature 版本
+# >>>>>>> feature-conflict  ← 到这里是合并分支（feature）的内容
 
-# 3. 标记冲突已解决
-git add "01-Git 基础/命令速查.md"
+# 3. 手动编辑，解决冲突（四种方案）
 
-# 4. 完成合并
-git commit -m "合并：解决冲突"
+# 方案 A：保留当前分支的内容
+echo "main 版本" > "test-冲突.txt"
 
-# 5. 查看历史
+# 方案 B：保留合并分支的内容
+echo "feature 版本" > "test-冲突.txt"
+
+# 方案 C：合并两者的内容（推荐）
+@"
+# 合并后的版本
+# - 保留了 main 的功能
+# - 添加了 feature 的新特性
+"@ | Out-File "test-冲突.txt" -Encoding UTF8
+
+# 方案 D：使用 VS Code 图形化工具
+code "test-冲突.txt"
+# VS Code 会显示：
+# [Current Change] main 版本
+# [Incoming Change] feature 版本
+# 点击 "Accept Current" / "Accept Incoming" / "Accept Both"
+
+# 4. 标记冲突已解决
+git add "test-冲突.txt"
+
+# 5. 完成合并提交
+git commit -m "合并：解决 test-冲突.txt 的冲突"
+# 注意：Git 会提供默认提交信息，可以直接保存退出
+
+# 6. 查看结果
 git lg
+# 看到合并提交（有两条父提交线）
 
-# 6. 删除功能分支
+# 7. 清理分支（可选）
 git branch -d feature-conflict
-
-# 7. 推送
-git push
+git push origin main
 
 
 # ========== 场景 4: 取消合并 ==========
