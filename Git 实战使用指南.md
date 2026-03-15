@@ -1,7 +1,7 @@
 # 🎯 Git 实战使用指南（完整版）
 
 > 从零开始掌握 Git 和 GitHub，包含完整流程、命令详解、多种场景处理和实战任务清单  
-> **版本**: v6.5（git rm 修正版）  
+> **版本**: v6.6（冲突制造修正版）  
 > **最后更新**: 2026-03-12
 
 ---
@@ -2718,21 +2718,45 @@ git push
 
 ```powershell
 # ========== 场景 1: 制造冲突 ==========
+# ⚠️ 关键：必须修改同一个文件的同一行（不是追加！）
+
+# 方法 A：覆盖写入（简单，推荐）⭐
 # 1. 确保在 main 分支
 git checkout main
 
-# 2. 修改文件
-echo "main 分支的修改" >> "01-Git 基础/命令速查.md"
+# 2. 创建测试文件并修改（覆盖写入，不是追加）
+echo "main 版本" > "test-冲突.txt"
 git add .
-git commit -m "更新：main 分支修改"
+git commit -m "main 版本"
 
 # 3. 创建并切换到功能分支
 git checkout -b feature-conflict
 
-# 4. 修改同一个文件的同一行
-echo "feature 分支的修改" >> "01-Git 基础/命令速查.md"
+# 4. 修改同一个文件（覆盖写入，制造冲突）
+echo "feature 版本" > "test-冲突.txt"
 git add .
-git commit -m "更新：feature 分支修改"
+git commit -m "feature 版本"
+
+# 方法 B：修改现有文件的同一行（真实场景）
+# 1. 确保在 main 分支
+git checkout main
+
+# 2. 修改 README.md 的第一行
+$content = Get-Content "README.md"
+$content[0] = "# 项目名称（main 修改）"
+$content | Set-Content "README.md"
+git add .
+git commit -m "main 修改标题"
+
+# 3. 创建功能分支
+git checkout -b feature-conflict
+
+# 4. 修改同一行
+$content = Get-Content "README.md"
+$content[0] = "# 项目名称（feature 修改）"
+$content | Set-Content "README.md"
+git add .
+git commit -m "feature 修改标题"
 
 
 # ========== 场景 2: 合并产生冲突 ==========
