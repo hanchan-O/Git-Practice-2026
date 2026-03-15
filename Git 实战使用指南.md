@@ -1,7 +1,7 @@
 # 🎯 Git 实战使用指南（完整版）
 
 > 从零开始掌握 Git 和 GitHub，包含完整流程、命令详解、多种场景处理和实战任务清单  
-> **版本**: v6.3（通俗易懂版）  
+> **版本**: v6.4（问答完善版）  
 > **最后更新**: 2026-03-12
 
 ---
@@ -1526,7 +1526,7 @@ git push -u origin feature-new
 # -u 参数：建立 upstream 关联，之后可以直接 git push
 ```
 
-**方法 2：直接创建远程分支**
+**方法 2：直接创建远程分支** 
 ```powershell
 # 不需要本地有分支，直接推送
 git push origin local-branch:remote-branch
@@ -1821,7 +1821,381 @@ git push -u origin branch-name
 
 ---
 
-## 9. 实战任务清单 ⭐
+### ❌ 问题 14: git diff 看不到差异
+
+**现象**:
+```powershell
+git fetch origin
+git diff main origin/main
+# （空输出，没有差异）
+```
+
+**原因**:
+- 本地和远程**完全同步**
+- 刚推送完，本地 = 远程
+
+**图解**:
+```
+场景 A：刚推送完，本地 = 远程
+本地 main:   A---B---C
+远程 main:   A---B---C  ← 完全一样
+git diff main origin/main  → 没有差异（空输出）
+
+场景 B：别人推送了新提交
+本地 main:   A---B---C
+远程 main:   A---B---C---D  ← 远程多了 D
+git diff main origin/main  → 能看到 D 的变化
+```
+
+**如何看到差异**:
+```powershell
+# 1. 让同事在 GitHub 上修改并推送
+# 2. 或者在 GitHub 网页修改文件并 commit
+# 3. 然后执行：
+git fetch origin
+git diff main origin/main
+# 现在能看到差异了！
+```
+
+**查看远程新提交**:
+```powershell
+# 查看提交历史差异
+git log main..origin/main
+
+# 查看文件内容差异
+git diff main origin/main
+
+# 查看简洁统计（哪些文件变了）
+git diff --stat main origin/main
+```
+
+---
+
+### ❌ 问题 15: Pull Request 是什么？
+
+**问题**:
+- PR 是必须的吗？
+- 为什么我直接 push 也能更新 GitHub？
+
+**答案**: **PR 不是必须的，取决于项目类型！**
+
+| 项目类型 | 能否直接 push | 需要 PR 吗 |
+|---------|--------------|-----------|
+| **个人项目** | ✅ 可以 | ❌ 不需要 |
+| **团队项目** | ❌ 不可以（分支保护） | ✅ 需要 |
+
+**个人项目（你现在的情况）**:
+```
+本地仓库                  GitHub
+   │                        │
+   │ git push main          │
+   ├────────────────────>  main ✅
+   │                        │
+   │                    直接更新
+   │                    不需要 PR
+```
+
+**团队项目（受保护的 main 分支）**:
+```
+本地仓库                  GitHub
+   │                        │
+   │ git push main          │
+   ├────────────────────>  main ❌
+   │                        │ 拒绝！
+   │                        │
+   │ git push feature       │
+   ├────────────────────>  feature ✅
+   │                        │
+   │                        │ 📝 PR 请求
+   │                        │ 审查通过
+   │                        │ ↓
+   │                        │ main ✅
+```
+
+**PR 的作用**:
+- 代码审查（团队检查代码质量）
+- 讨论修改（在 PR 里评论、建议）
+- 自动化测试（CI/CD 自动运行）
+- 保护主分支（防止错误代码进入）
+- 记录历史（完整讨论记录）
+
+**PR 流程**:
+```powershell
+# 1. 创建功能分支
+git checkout -b feature-login
+
+# 2. 开发功能
+git add .
+git commit -m "新增：登录功能"
+
+# 3. 推送到远程（不能直接 push main）
+git push -u origin feature-login
+
+# 4. 在 GitHub 创建 PR
+# 访问：https://github.com/用户名/仓库/pulls
+# 点击 "New pull request"
+# 选择 base: main, compare: feature-login
+
+# 5. 团队审查
+# 查看代码变更
+# 添加评论
+# 请求修改
+
+# 6. 审查通过，合并到 main
+# 点击 "Merge pull request"
+
+# 7. 本地同步
+git checkout main
+git pull
+git branch -d feature-login
+```
+
+---
+
+### ❌ 问题 16: git stash 的作用
+
+**问题**:
+- git stash 是做什么的？
+- 切换分支时提示 "changes would be overwritten" 怎么办？
+
+**答案**: **git stash = 暂存工作区修改，方便切换分支**
+
+**场景**:
+```
+你在 main 分支工作，写了一半代码
+突然需要切换到 feature 分支修复紧急 bug
+
+❌ 直接切换会报错：
+git checkout feature
+# error: Your local changes would be overwritten
+
+✅ 正确做法：
+git stash              # 1. 暂存修改
+git checkout feature   # 2. 切换分支（安全）
+# 修复 bug...
+git checkout main      # 3. 回到 main
+git stash pop          # 4. 恢复修改
+```
+
+**图解**:
+```
+工作区：修改了 A.md、B.md
+    ↓ git stash
+工作区：干净（修改被保存到 stash）
+    ↓ git checkout feature
+切换到 feature 分支（安全，不会覆盖修改）
+    ↓ git stash pop
+工作区：恢复 A.md、B.md 的修改
+```
+
+**完整例子**:
+```powershell
+# 在 main 分支工作到一半
+# 修改了 file1.md、file2.md
+
+# 1. 暂存修改
+git stash
+# Saved working directory and index state 'WIP on main: abc1234 更新'
+
+# 2. 查看暂存列表
+git stash list
+# stash@{0}: WIP on main: abc1234 更新
+
+# 3. 切换分支
+git checkout feature
+
+# 4. 修复 bug...
+git add .
+git commit -m "修复 bug"
+
+# 5. 回到 main
+git checkout main
+
+# 6. 恢复修改
+git stash pop
+# On branch main
+# Changes not staged for commit:
+#   modified:   file1.md
+#   modified:   file2.md
+```
+
+---
+
+### ❌ 问题 17: 本地分支推送到远程，必须同名吗？
+
+**答案**: **不需要！可以推送到不同名的分支！**
+
+**情况 1：同名分支（最常见）**
+```powershell
+# 本地 main → 远程 main
+git push origin main
+
+# 本地 feature → 远程 feature
+git push origin feature
+```
+
+**情况 2：不同名分支（完全允许）**
+```powershell
+# 本地 dev-branch → 远程 production
+git push origin dev-branch:production
+
+# 本地 test → 远程 main
+git push origin test:main
+```
+
+**标准语法**:
+```powershell
+git push origin <本地分支>:<远程分支>
+
+# 例子：
+git push origin feature:main      # 本地 feature → 远程 main
+git push origin dev:production    # 本地 dev → 远程 production
+```
+
+**实际例子**:
+```powershell
+# 场景：本地测试分支开发，推送到远程 main
+
+# 方法 1：直接推送到不同名分支
+git push origin test-branch:main
+
+# 方法 2：先改名再推送
+git branch -m test-branch main
+git push -u origin main
+```
+
+---
+
+### ❌ 问题 18: git push 默认推送到哪里？
+
+**问题**:
+- `git push` 不加参数，会推送到哪里？
+- upstream 是什么？
+
+**答案**: **推送到当前分支关联的远程分支（upstream）**
+
+**情况 1：已建立 upstream 关联 ✅**
+```powershell
+# 首次推送建立了关联
+git push -u origin feature-login
+
+# 后续推送
+git push
+# ✅ 自动推送到 origin/feature-login
+```
+
+**情况 2：没有 upstream 关联 ❌**
+```powershell
+# 新建分支，首次推送
+git checkout -b new-feature
+git commit -m "新功能"
+
+# 直接 push 会报错
+git push
+# fatal: The current branch new-feature has no upstream branch.
+
+# 必须指定
+git push -u origin new-feature
+```
+
+**upstream 关联图解**:
+```
+本地 feature-login  ←→  远程 origin/feature-login
+         ↑                    ↑
+         └──── upstream ──────┘
+         
+建立关联后：
+git push  → 自动推送到 origin/feature-login
+git pull  → 自动从 origin/feature-login 拉取
+```
+
+**查看 upstream 关联**:
+```powershell
+# 查看所有分支的 upstream
+git branch -vv
+
+# 输出示例：
+# * feature-login  abc1234 [origin/feature-login] 新增：登录功能
+#   main           def5678 [origin/main] 更新 README
+#   test-branch    xyz7890 (没有 upstream)
+```
+
+**解释**:
+- `[origin/feature-login]` = 已关联远程分支
+- `(没有 upstream)` = 未关联，推送时需要指定
+
+**最佳实践**:
+```powershell
+# 首次推送永远用 -u
+git push -u origin 分支名
+
+# 后续直接 git push
+git push
+```
+
+---
+
+### ❌ 问题 19: Git 命令支持文件路径吗？
+
+**答案**: **支持！所有命令都支持绝对路径、相对路径、通配符！**
+
+**绝对路径**:
+```powershell
+# Windows
+git add "D:\项目\src\login.py"
+git diff "C:\Users\文档\README.md"
+
+# Mac/Linux
+git add "/home/user/project/src/login.py"
+```
+
+**相对路径**:
+```powershell
+# 当前目录
+git add README.md
+
+# 子目录
+git add src/login.py
+git add "01-学习笔记/Git 基础.md"
+
+# 上级目录
+git add ../README.md
+git diff ../../config.json
+
+# 多级目录
+git add src/utils/helpers/format.py
+git diff docs/guides/advanced/git-flow.md
+```
+
+**通配符**:
+```powershell
+# 所有 .md 文件
+git add *.md
+
+# 所有子目录的 .py 文件
+git add src/**/*.py
+
+# 特定目录的所有文件
+git add "01-学习笔记/*"
+```
+
+**实际例子**:
+```powershell
+# 查看特定文件的修改
+git diff "01-学习笔记/Git 基础.md"
+git diff src/login.py
+
+# 只添加特定文件
+git add "01-学习笔记/Git 基础.md"
+git add src/*.py
+
+# 提交特定目录
+git commit "docs/" -m "更新文档"
+```
+
+---
+
+## 9. 实战任务清单 ⭐ 
 
 ### 📋 任务概览
 
